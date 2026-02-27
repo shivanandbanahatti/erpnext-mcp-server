@@ -19,45 +19,40 @@ import {
   ListResourceTemplatesRequestSchema,
   ListToolsRequestSchema,
   McpError,
-  ReadResourceRequestSchema
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
 
-// ERPNext API client configuration
+type AnyRecord = Record<string, any>;
+
 class ERPNextClient {
   private baseUrl: string;
   private axiosInstance: AxiosInstance;
   private authenticated: boolean = false;
 
   constructor() {
-    // Get ERPNext configuration from environment variables
-    this.baseUrl = process.env.ERPNEXT_URL || '';
-    
-    // Validate configuration
+    this.baseUrl = process.env.ERPNEXT_URL || "";
+
     if (!this.baseUrl) {
       throw new Error("ERPNEXT_URL environment variable is required");
     }
-    
-    // Remove trailing slash if present
-    this.baseUrl = this.baseUrl.replace(/\/$/, '');
-    
-    // Initialize axios instance
+
+    this.baseUrl = this.baseUrl.replace(/\/$/, "");
+
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
       withCredentials: true,
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
     });
-    
-    // Configure authentication if credentials provided
+
     const apiKey = process.env.ERPNEXT_API_KEY;
     const apiSecret = process.env.ERPNEXT_API_SECRET;
-    
+
     if (apiKey && apiSecret) {
-      this.axiosInstance.defaults.headers.common['Authorization'] = 
-        `token ${apiKey}:${apiSecret}`;
+      this.axiosInstance.defaults.headers.common["Authorization"] = `token ${apiKey}:${apiSecret}`;
       this.authenticated = true;
     }
   }
@@ -66,227 +61,228 @@ class ERPNextClient {
     return this.authenticated;
   }
 
-  // Get a document by doctype and name
   async getDocument(doctype: string, name: string): Promise<any> {
     try {
-      const response = await this.axiosInstance.get(`/api/resource/${doctype}/${name}`);
+      const response = await this.axiosInstance.get(
+        `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
+      );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get ${doctype} ${name}: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Failed to get ${doctype} ${name}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // Get list of documents for a doctype
-  async getDocList(doctype: string, filters?: Record<string, any>, fields?: string[], limit?: number): Promise<any[]> {
+  async getDocList(
+    doctype: string,
+    filters?: AnyRecord,
+    fields?: string[],
+    limit?: number,
+  ): Promise<any[]> {
     try {
-      let params: Record<string, any> = {};
-      
+      const params: AnyRecord = {};
+
       if (fields && fields.length) {
-        params['fields'] = JSON.stringify(fields);
+        params["fields"] = JSON.stringify(fields);
       }
-      
+
       if (filters) {
-        params['filters'] = JSON.stringify(filters);
+        params["filters"] = JSON.stringify(filters);
       }
-      
+
       if (limit) {
-        params['limit_page_length'] = limit;
+        params["limit_page_length"] = limit;
       }
-      
-      const response = await this.axiosInstance.get(`/api/resource/${doctype}`, { params });
+
+      const response = await this.axiosInstance.get(
+        `/api/resource/${encodeURIComponent(doctype)}`,
+        { params },
+      );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get ${doctype} list: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Failed to get ${doctype} list: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // Create a new document
-  async createDocument(doctype: string, doc: Record<string, any>): Promise<any> {
+  async createDocument(doctype: string, doc: AnyRecord): Promise<any> {
     try {
-      const response = await this.axiosInstance.post(`/api/resource/${doctype}`, {
-        data: doc
-      });
+      const response = await this.axiosInstance.post(
+        `/api/resource/${encodeURIComponent(doctype)}`,
+        { data: doc },
+      );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to create ${doctype}: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Failed to create ${doctype}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // Update an existing document
-  async updateDocument(doctype: string, name: string, doc: Record<string, any>): Promise<any> {
+  async updateDocument(doctype: string, name: string, doc: AnyRecord): Promise<any> {
     try {
-      const response = await this.axiosInstance.put(`/api/resource/${doctype}/${name}`, {
-        data: doc
-      });
+      const response = await this.axiosInstance.put(
+        `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
+        { data: doc },
+      );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to update ${doctype} ${name}: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Failed to update ${doctype} ${name}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // Run a report
-  async runReport(reportName: string, filters?: Record<string, any>): Promise<any> {
+  async runReport(reportName: string, filters?: AnyRecord): Promise<any> {
     try {
       const response = await this.axiosInstance.get(`/api/method/frappe.desk.query_report.run`, {
         params: {
           report_name: reportName,
-          filters: filters ? JSON.stringify(filters) : undefined
-        }
+          filters: filters ? JSON.stringify(filters) : undefined,
+        },
       });
       return response.data.message;
     } catch (error: any) {
-      throw new Error(`Failed to run report ${reportName}: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Failed to run report ${reportName}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // Call a server-side API method
-  async callMethod(method: string, args?: Record<string, any>, httpMethod: "GET" | "POST" = "POST"): Promise<any> {
+  async callMethod(
+    method: string,
+    args?: AnyRecord,
+    httpMethod: "GET" | "POST" = "POST",
+  ): Promise<any> {
+    if (!/^[\w.]+$/.test(method)) {
+      throw new Error(`Invalid method path: ${method}`);
+    }
     try {
-      let response;
-      if (httpMethod.toUpperCase() === "GET") {
-        response = await this.axiosInstance.get(`/api/method/${method}`, { params: args });
-      } else {
-        response = await this.axiosInstance.post(`/api/method/${method}`, args);
-      }
+      const response =
+        httpMethod === "GET"
+          ? await this.axiosInstance.get(`/api/method/${method}`, { params: args })
+          : await this.axiosInstance.post(`/api/method/${method}`, args);
       return response.data.message;
     } catch (error: any) {
-      throw new Error(`Failed to call method ${method}: ${error?.message || 'Unknown error'}`);
+      throw new Error(`Failed to call method ${method}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // Get all available DocTypes
   async getAllDocTypes(): Promise<string[]> {
     try {
-      // Use the standard REST API to fetch DocTypes
-      const response = await this.axiosInstance.get('/api/resource/DocType', {
+      const response = await this.axiosInstance.get("/api/resource/DocType", {
         params: {
           fields: JSON.stringify(["name"]),
-          limit_page_length: 500 // Get more doctypes at once
-        }
+          limit_page_length: 500,
+        },
       });
-      
+
       if (response.data && response.data.data) {
         return response.data.data.map((item: any) => item.name);
       }
-      
+
       return [];
     } catch (error: any) {
-      console.error("Failed to get DocTypes:", error?.message || 'Unknown error');
-      
-      // Try an alternative approach if the first one fails
+      console.error("Failed to get DocTypes:", error?.message || "Unknown error");
+
       try {
-        // Try using the method API to get doctypes
-        const altResponse = await this.axiosInstance.get('/api/method/frappe.desk.search.search_link', {
-          params: {
-            doctype: 'DocType',
-            txt: '',
-            limit: 500
-          }
-        });
-        
+        const altResponse = await this.axiosInstance.get(
+          "/api/method/frappe.desk.search.search_link",
+          {
+            params: {
+              doctype: "DocType",
+              txt: "",
+              limit: 500,
+            },
+          },
+        );
+
         if (altResponse.data && altResponse.data.results) {
           return altResponse.data.results.map((item: any) => item.value);
         }
-        
+
         return [];
       } catch (altError: any) {
-        console.error("Alternative DocType fetch failed:", altError?.message || 'Unknown error');
-        
-        // Fallback: Return a list of common DocTypes
+        console.error("Alternative DocType fetch failed:", altError?.message || "Unknown error");
+
         return [
-          "Customer", "Supplier", "Item", "Sales Order", "Purchase Order",
-          "Sales Invoice", "Purchase Invoice", "Employee", "Lead", "Opportunity",
-          "Quotation", "Payment Entry", "Journal Entry", "Stock Entry"
+          "Customer",
+          "Supplier",
+          "Item",
+          "Sales Order",
+          "Purchase Order",
+          "Sales Invoice",
+          "Purchase Invoice",
+          "Employee",
+          "Lead",
+          "Opportunity",
+          "Quotation",
+          "Payment Entry",
+          "Journal Entry",
+          "Stock Entry",
         ];
       }
     }
   }
+
+  async getDocTypeMeta(doctype: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get(
+        `/api/resource/DocType/${encodeURIComponent(doctype)}`,
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(
+        `Failed to get DocType metadata for ${doctype}: ${error?.message || "Unknown error"}`,
+      );
+    }
+  }
 }
 
-// Cache for doctype metadata
-const doctypeCache = new Map<string, any>();
-
-// Initialize ERPNext client
 const erpnext = new ERPNextClient();
 
-// Create an MCP server with capabilities for resources and tools
 const server = new Server(
   {
     name: "erpnext-server",
-    version: "0.1.0"
+    version: "0.1.0",
   },
   {
     capabilities: {
       resources: {},
-      tools: {}
-    }
-  }
+      tools: {},
+    },
+  },
 );
 
-/**
- * Handler for listing available ERPNext resources.
- * Exposes DocTypes list as a resource and common doctypes as individual resources.
- */
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  // List of common DocTypes to expose as individual resources
-  const commonDoctypes = [
-    "Customer",
-    "Supplier",
-    "Item",
-    "Sales Order",
-    "Purchase Order",
-    "Sales Invoice",
-    "Purchase Invoice",
-    "Employee"
-  ];
-
   const resources = [
-    // Add a resource to get all doctypes
     {
       uri: "erpnext://DocTypes",
       name: "All DocTypes",
       mimeType: "application/json",
-      description: "List of all available DocTypes in the ERPNext instance"
-    }
+      description: "List of all available DocTypes in the ERPNext instance",
+    },
   ];
 
-  return {
-    resources
-  };
+  return { resources };
 });
 
-/**
- * Handler for resource templates.
- * Allows querying ERPNext documents by doctype and name.
- */
 server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
   const resourceTemplates = [
     {
       uriTemplate: "erpnext://{doctype}/{name}",
       name: "ERPNext Document",
       mimeType: "application/json",
-      description: "Fetch an ERPNext document by doctype and name"
-    }
+      description: "Fetch an ERPNext document by doctype and name",
+    },
   ];
 
   return { resourceTemplates };
 });
 
-/**
- * Handler for reading ERPNext resources.
- */
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   if (!erpnext.isAuthenticated()) {
     throw new McpError(
       ErrorCode.InvalidRequest,
-      "Not authenticated with ERPNext. Please configure API key authentication."
+      "Not authenticated with ERPNext. Please configure API key authentication.",
     );
   }
 
   const uri = request.params.uri;
   let result: any;
 
-  // Handle special resource: erpnext://DocTypes (list of all doctypes)
   if (uri === "erpnext://DocTypes") {
     try {
       const doctypes = await erpnext.getAllDocTypes();
@@ -294,46 +290,41 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to fetch DocTypes: ${error?.message || 'Unknown error'}`
+        `Failed to fetch DocTypes: ${error?.message || "Unknown error"}`,
       );
     }
   } else {
-    // Handle document access: erpnext://{doctype}/{name}
-    const documentMatch = uri.match(/^erpnext:\/\/([^\/]+)\/(.+)$/);
+    const documentMatch = uri.match(/^erpnext:\/\/([^/]+)\/(.+)$/);
     if (documentMatch) {
       const doctype = decodeURIComponent(documentMatch[1]);
       const name = decodeURIComponent(documentMatch[2]);
-      
+
       try {
         result = await erpnext.getDocument(doctype, name);
       } catch (error: any) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          `Failed to fetch ${doctype} ${name}: ${error?.message || 'Unknown error'}`
+          `Failed to fetch ${doctype} ${name}: ${error?.message || "Unknown error"}`,
         );
       }
     }
   }
 
   if (!result) {
-    throw new McpError(
-      ErrorCode.InvalidRequest,
-      `Invalid ERPNext resource URI: ${uri}`
-    );
+    throw new McpError(ErrorCode.InvalidRequest, `Invalid ERPNext resource URI: ${uri}`);
   }
 
   return {
-    contents: [{
-      uri: request.params.uri,
-      mimeType: "application/json",
-      text: JSON.stringify(result, null, 2)
-    }]
+    contents: [
+      {
+        uri: request.params.uri,
+        mimeType: "application/json",
+        text: JSON.stringify(result, null, 2),
+      },
+    ],
   };
 });
 
-/**
- * Handler that lists available tools.
- */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -342,52 +333,54 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: "Get a list of all available DocTypes",
         inputSchema: {
           type: "object",
-          properties: {}
-        }
+          properties: {},
+        },
       },
       {
         name: "get_doctype_fields",
-        description: "Get fields list for a specific DocType",
+        description:
+          "Get field definitions for a specific DocType from ERPNext metadata. Returns fieldname, fieldtype, label, options, and reqd for each field.",
         inputSchema: {
           type: "object",
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType (e.g., Customer, Item)"
-            }
+              description: "ERPNext DocType (e.g., Customer, Item)",
+            },
           },
-            required: ["doctype"]
-        }
+          required: ["doctype"],
+        },
       },
       {
         name: "get_documents",
-        description: "Get a list of documents for a specific doctype",
+        description:
+          "Get a list of documents for a specific doctype. ERPNext defaults to 20 results if no limit is specified.",
         inputSchema: {
           type: "object",
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType (e.g., Customer, Item)"
+              description: "ERPNext DocType (e.g., Customer, Item)",
             },
             fields: {
               type: "array",
               items: {
-                type: "string"
+                type: "string",
               },
-              description: "Fields to include (optional)"
+              description: "Fields to include (optional)",
             },
             filters: {
               type: "object",
               additionalProperties: true,
-              description: "Filters in the format {field: value} (optional)"
+              description: "Filters in the format {field: value} (optional)",
             },
             limit: {
               type: "number",
-              description: "Maximum number of documents to return (optional)"
-            }
+              description: "Maximum number of documents to return (optional)",
+            },
           },
-          required: ["doctype"]
-        }
+          required: ["doctype"],
+        },
       },
       {
         name: "create_document",
@@ -397,16 +390,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType (e.g., Customer, Item)"
+              description: "ERPNext DocType (e.g., Customer, Item)",
             },
             data: {
               type: "object",
               additionalProperties: true,
-              description: "Document data"
-            }
+              description: "Document data",
+            },
           },
-          required: ["doctype", "data"]
-        }
+          required: ["doctype", "data"],
+        },
       },
       {
         name: "update_document",
@@ -416,20 +409,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType (e.g., Customer, Item)"
+              description: "ERPNext DocType (e.g., Customer, Item)",
             },
             name: {
               type: "string",
-              description: "Document name/ID"
+              description: "Document name/ID",
             },
             data: {
               type: "object",
               additionalProperties: true,
-              description: "Document data to update"
-            }
+              description: "Document data to update",
+            },
           },
-          required: ["doctype", "name", "data"]
-        }
+          required: ["doctype", "name", "data"],
+        },
       },
       {
         name: "run_report",
@@ -439,16 +432,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             report_name: {
               type: "string",
-              description: "Name of the report"
+              description: "Name of the report",
             },
             filters: {
               type: "object",
               additionalProperties: true,
-              description: "Report filters (optional)"
-            }
+              description: "Report filters (optional)",
+            },
           },
-          required: ["report_name"]
-        }
+          required: ["report_name"],
+        },
       },
       {
         name: "get_document",
@@ -458,533 +451,408 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType (e.g., Customer, Item)"
+              description: "ERPNext DocType (e.g., Customer, Item)",
             },
             name: {
               type: "string",
-              description: "Document name/ID (e.g., BOM-COM-HALPI2-007)"
-            }
+              description: "Document name/ID (e.g., BOM-COM-HALPI2-007)",
+            },
           },
-          required: ["doctype", "name"]
-        }
+          required: ["doctype", "name"],
+        },
       },
       {
         name: "call_method",
-        description: "Call an ERPNext/Frappe whitelisted server-side API method. WARNING: This can invoke any whitelisted method including destructive operations — use with caution. Args are passed as JSON body (POST) or query params (GET), with keys matching the method's parameter names.",
+        description:
+          "Call an ERPNext/Frappe whitelisted server-side API method. WARNING: This can invoke any whitelisted method including destructive operations — use with caution. Args are passed as JSON body (POST) or query params (GET), with keys matching the method's parameter names.",
         inputSchema: {
           type: "object",
           properties: {
             method: {
               type: "string",
-              description: "Dotted method path (e.g., erpnext.manufacturing.doctype.work_order.work_order.make_stock_entry)"
+              description:
+                "Dotted method path (e.g., erpnext.manufacturing.doctype.work_order.work_order.make_stock_entry)",
             },
             args: {
               type: "object",
               additionalProperties: true,
-              description: "Method arguments as key-value pairs (optional)"
+              description: "Method arguments as key-value pairs (optional)",
             },
             http_method: {
               type: "string",
               enum: ["GET", "POST"],
-              description: "HTTP method to use (default: POST). Use GET for read-only methods like frappe.client.get_count."
-            }
+              description:
+                "HTTP method to use (default: POST). Use GET for read-only methods like frappe.client.get_count.",
+            },
           },
-          required: ["method"]
-        }
+          required: ["method"],
+        },
       },
       {
         name: "submit_document",
-        description: "Submit a document (set docstatus to 1). This is irreversible — submitted documents can only be cancelled, not reverted to draft.",
+        description:
+          "Submit a document (set docstatus to 1). This is irreversible — submitted documents can only be cancelled, not reverted to draft.",
         inputSchema: {
           type: "object",
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType"
+              description: "ERPNext DocType",
             },
             name: {
               type: "string",
-              description: "Document name/ID"
-            }
+              description: "Document name/ID",
+            },
           },
-          required: ["doctype", "name"]
-        }
+          required: ["doctype", "name"],
+        },
       },
       {
         name: "cancel_document",
-        description: "Cancel a submitted document (set docstatus to 2). Cancelled documents cannot be modified — use amend workflow to create a corrected copy.",
+        description:
+          "Cancel a submitted document (set docstatus to 2). Cancelled documents cannot be modified — use amend workflow to create a corrected copy.",
         inputSchema: {
           type: "object",
           properties: {
             doctype: {
               type: "string",
-              description: "ERPNext DocType"
+              description: "ERPNext DocType",
             },
             name: {
               type: "string",
-              description: "Document name/ID"
-            }
+              description: "Document name/ID",
+            },
           },
-          required: ["doctype", "name"]
-        }
-      }
-    ]
+          required: ["doctype", "name"],
+        },
+      },
+    ],
   };
 });
 
-/**
- * Handler for tool calls.
- */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  // Auth check applies to all tools uniformly
+  if (!erpnext.isAuthenticated()) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: "Not authenticated with ERPNext. Please configure API key authentication.",
+        },
+      ],
+      isError: true,
+    };
+  }
+
   switch (request.params.name) {
     case "get_documents": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
+      const doctype = request.params.arguments?.doctype;
+      if (typeof doctype !== "string" || !doctype) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype is required");
       }
-      
-      const doctype = String(request.params.arguments?.doctype);
+
       const fields = request.params.arguments?.fields as string[] | undefined;
-      const filters = request.params.arguments?.filters as Record<string, any> | undefined;
+      const filters = request.params.arguments?.filters as AnyRecord | undefined;
       const limit = request.params.arguments?.limit as number | undefined;
-      
-      if (!doctype) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype is required"
-        );
-      }
-      
+
       try {
         const documents = await erpnext.getDocList(doctype, filters, fields, limit);
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(documents, null, 2)
-          }]
+          content: [{ type: "text", text: JSON.stringify(documents, null, 2) }],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to get ${doctype} documents: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to get ${doctype} documents: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
-    
+
     case "create_document": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
+      const doctype = request.params.arguments?.doctype;
+      const data = request.params.arguments?.data as AnyRecord | undefined;
+      if (typeof doctype !== "string" || !doctype || !data) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype and data are required");
       }
-      
-      const doctype = String(request.params.arguments?.doctype);
-      const data = request.params.arguments?.data as Record<string, any> | undefined;
-      
-      if (!doctype || !data) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype and data are required"
-        );
-      }
-      
+
       try {
         const result = await erpnext.createDocument(doctype, data);
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              status: "success",
-              doctype: doctype,
-              name: result.name,
-              docstatus: result.docstatus
-            })
-          }]
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "success",
+                doctype: doctype,
+                name: result.name,
+                docstatus: result.docstatus,
+              }),
+            },
+          ],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to create ${doctype}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to create ${doctype}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
-    
+
     case "update_document": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
+      const doctype = request.params.arguments?.doctype;
+      const name = request.params.arguments?.name;
+      const data = request.params.arguments?.data as AnyRecord | undefined;
+      if (typeof doctype !== "string" || !doctype || typeof name !== "string" || !name || !data) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype, name, and data are required");
       }
-      
-      const doctype = String(request.params.arguments?.doctype);
-      const name = String(request.params.arguments?.name);
-      const data = request.params.arguments?.data as Record<string, any> | undefined;
-      
-      if (!doctype || !name || !data) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype, name, and data are required"
-        );
-      }
-      
+
       try {
         const result = await erpnext.updateDocument(doctype, name, data);
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              status: "success",
-              doctype: doctype,
-              name: result.name,
-              docstatus: result.docstatus
-            })
-          }]
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "success",
+                doctype: doctype,
+                name: result.name,
+                docstatus: result.docstatus,
+              }),
+            },
+          ],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to update ${doctype} ${name}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to update ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
-    
+
     case "run_report": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
+      const reportName = request.params.arguments?.report_name;
+      if (typeof reportName !== "string" || !reportName) {
+        throw new McpError(ErrorCode.InvalidParams, "Report name is required");
       }
-      
-      const reportName = String(request.params.arguments?.report_name);
-      const filters = request.params.arguments?.filters as Record<string, any> | undefined;
-      
-      if (!reportName) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Report name is required"
-        );
-      }
-      
+
+      const filters = request.params.arguments?.filters as AnyRecord | undefined;
+
       try {
         const result = await erpnext.runReport(reportName, filters);
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to run report ${reportName}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to run report ${reportName}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
-    
-    case "get_document": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
-      }
 
+    case "get_document": {
       const doctype = request.params.arguments?.doctype;
       const name = request.params.arguments?.name;
-
-      if (typeof doctype !== 'string' || !doctype || typeof name !== 'string' || !name) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype and name are required"
-        );
+      if (typeof doctype !== "string" || !doctype || typeof name !== "string" || !name) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype and name are required");
       }
 
       try {
         const document = await erpnext.getDocument(doctype, name);
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(document, null, 2)
-          }]
+          content: [{ type: "text", text: JSON.stringify(document, null, 2) }],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to get ${doctype} ${name}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to get ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
 
     case "call_method": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
-      }
-
       const method = request.params.arguments?.method;
-      const args = request.params.arguments?.args as Record<string, any> | undefined;
-      const httpMethod = (request.params.arguments?.http_method === "GET" ? "GET" : "POST") as "GET" | "POST";
-
-      if (typeof method !== 'string' || !method) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Method is required"
-        );
+      if (typeof method !== "string" || !method) {
+        throw new McpError(ErrorCode.InvalidParams, "Method is required");
       }
+
+      const args = request.params.arguments?.args as AnyRecord | undefined;
+      const httpMethod = (request.params.arguments?.http_method === "GET" ? "GET" : "POST") as
+        | "GET"
+        | "POST";
 
       try {
         const result = await erpnext.callMethod(method, args, httpMethod);
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(result, null, 2)
-          }]
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to call method ${method}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to call method ${method}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
 
     case "submit_document": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
-      }
-
       const doctype = request.params.arguments?.doctype;
       const name = request.params.arguments?.name;
-
-      if (typeof doctype !== 'string' || !doctype || typeof name !== 'string' || !name) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype and name are required"
-        );
+      if (typeof doctype !== "string" || !doctype || typeof name !== "string" || !name) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype and name are required");
       }
 
       try {
         const result = await erpnext.updateDocument(doctype, name, { docstatus: 1 });
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              status: "success",
-              doctype: doctype,
-              name: result?.name || name,
-              docstatus: result?.docstatus ?? 1
-            })
-          }]
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "success",
+                doctype: doctype,
+                name: result?.name || name,
+                docstatus: result?.docstatus ?? 1,
+              }),
+            },
+          ],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to submit ${doctype} ${name}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to submit ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
 
     case "cancel_document": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
-      }
-
       const doctype = request.params.arguments?.doctype;
       const name = request.params.arguments?.name;
-
-      if (typeof doctype !== 'string' || !doctype || typeof name !== 'string' || !name) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype and name are required"
-        );
+      if (typeof doctype !== "string" || !doctype || typeof name !== "string" || !name) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype and name are required");
       }
 
       try {
-        await erpnext.callMethod('frappe.client.cancel', { doctype, name });
+        await erpnext.callMethod("frappe.client.cancel", { doctype, name });
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              status: "success",
-              doctype: doctype,
-              name: name,
-              docstatus: 2
-            })
-          }]
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "success",
+                doctype: doctype,
+                name: name,
+                docstatus: 2,
+              }),
+            },
+          ],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to cancel ${doctype} ${name}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to cancel ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
 
     case "get_doctype_fields": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
+      const doctype = request.params.arguments?.doctype;
+      if (typeof doctype !== "string" || !doctype) {
+        throw new McpError(ErrorCode.InvalidParams, "Doctype is required");
       }
-      
-      const doctype = String(request.params.arguments?.doctype);
-      
-      if (!doctype) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          "Doctype is required"
-        );
-      }
-      
+
       try {
-        // Get a sample document to understand the fields
-        const documents = await erpnext.getDocList(doctype, {}, ["*"], 1);
-        
-        if (!documents || documents.length === 0) {
-          return {
-            content: [{
-              type: "text",
-              text: `No documents found for ${doctype}. Cannot determine fields.`
-            }],
-            isError: true
-          };
-        }
-        
-        // Extract field names from the first document
-        const sampleDoc = documents[0];
-        const fields = Object.keys(sampleDoc).map(field => ({
-          fieldname: field,
-          value: typeof sampleDoc[field],
-          sample: sampleDoc[field]?.toString()?.substring(0, 50) || null
+        const meta = await erpnext.getDocTypeMeta(doctype);
+        const fields = (meta.fields || []).map((f: any) => ({
+          fieldname: f.fieldname,
+          fieldtype: f.fieldtype,
+          label: f.label,
+          options: f.options || null,
+          reqd: f.reqd || 0,
         }));
-        
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(fields, null, 2)
-          }]
+          content: [{ type: "text", text: JSON.stringify(fields, null, 2) }],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to get fields for ${doctype}: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to get fields for ${doctype}: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
-    
+
     case "get_doctypes": {
-      if (!erpnext.isAuthenticated()) {
-        return {
-          content: [{
-            type: "text",
-            text: "Not authenticated with ERPNext. Please configure API key authentication."
-          }],
-          isError: true
-        };
-      }
-      
       try {
         const doctypes = await erpnext.getAllDocTypes();
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify(doctypes, null, 2)
-          }]
+          content: [{ type: "text", text: JSON.stringify(doctypes, null, 2) }],
         };
       } catch (error: any) {
         return {
-          content: [{
-            type: "text",
-            text: `Failed to get DocTypes: ${error?.message || 'Unknown error'}`
-          }],
-          isError: true
+          content: [
+            {
+              type: "text",
+              text: `Failed to get DocTypes: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
         };
       }
     }
-      
+
     default:
-      throw new McpError(
-        ErrorCode.MethodNotFound,
-        `Unknown tool: ${request.params.name}`
-      );
+      throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
   }
 });
 
-/**
- * Start the server using stdio transport.
- */
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('ERPNext MCP server running on stdio');
+  console.error("ERPNext MCP server running on stdio");
 }
 
 main().catch((error) => {
