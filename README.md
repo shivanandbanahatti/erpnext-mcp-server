@@ -1,6 +1,8 @@
 # ERPNext MCP Server
 
-A Model Context Protocol server for ERPNext integration
+A Model Context Protocol server for ERPNext integration.
+
+Originally forked from [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server). This fork adds API key authentication, minimal response optimization, and additional tools for document lifecycle management and server-side method calls.
 
 This is a TypeScript-based MCP server that provides integration with ERPNext/Frappe API. It enables AI assistants to interact with ERPNext data and functionality through the Model Context Protocol.
 
@@ -11,13 +13,16 @@ This is a TypeScript-based MCP server that provides integration with ERPNext/Fra
 - JSON format for structured data access
 
 ### Tools
-- `authenticate_erpnext` - Authenticate with ERPNext using username and password
+- `get_doctypes` - Get a list of all available DocTypes
+- `get_doctype_fields` - Get fields list for a specific DocType
 - `get_documents` - Get a list of documents for a specific doctype
+- `get_document` - Get a single document by name, including all child tables
 - `create_document` - Create a new document in ERPNext
 - `update_document` - Update an existing document in ERPNext
+- `submit_document` - Submit a document (set docstatus to 1)
+- `cancel_document` - Cancel a submitted document (set docstatus to 2)
+- `call_method` - Call an ERPNext server-side API method
 - `run_report` - Run an ERPNext report
-- `get_doctype_fields` - Get fields list for a specific DocType
-- `get_doctypes` - Get a list of all available DocTypes
 
 ## Configuration
 
@@ -82,20 +87,6 @@ npm run inspector
 The Inspector will provide a URL to access debugging tools in your browser.
 
 ## Usage Examples
-
-### Authentication
-```
-<use_mcp_tool>
-<server_name>erpnext</server_name>
-<tool_name>authenticate_erpnext</tool_name>
-<arguments>
-{
-  "username": "your-username",
-  "password": "your-password"
-}
-</arguments>
-</use_mcp_tool>
-```
 
 ### Get Customer List
 ```

@@ -140,7 +140,7 @@ class ERPNextClient {
   }
 
   // Call a server-side API method
-  async callMethod(method: string, args?: Record<string, any>, httpMethod: string = "POST"): Promise<any> {
+  async callMethod(method: string, args?: Record<string, any>, httpMethod: "GET" | "POST" = "POST"): Promise<any> {
     try {
       let response;
       if (httpMethod.toUpperCase() === "GET") {
@@ -470,7 +470,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "call_method",
-        description: "Call an ERPNext/Frappe whitelisted server-side API method. Args are passed as JSON body (POST) or query params (GET), with keys matching the method's parameter names.",
+        description: "Call an ERPNext/Frappe whitelisted server-side API method. WARNING: This can invoke any whitelisted method including destructive operations — use with caution. Args are passed as JSON body (POST) or query params (GET), with keys matching the method's parameter names.",
         inputSchema: {
           type: "object",
           properties: {
@@ -763,7 +763,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const method = request.params.arguments?.method;
       const args = request.params.arguments?.args as Record<string, any> | undefined;
-      const httpMethod = (request.params.arguments?.http_method as string) || "POST";
+      const httpMethod = (request.params.arguments?.http_method === "GET" ? "GET" : "POST") as "GET" | "POST";
 
       if (typeof method !== 'string' || !method) {
         throw new McpError(
@@ -813,9 +813,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       try {
-        const result = await erpnext.callMethod('frappe.client.submit', {
-          doc: { doctype, name }
-        });
+        const result = await erpnext.updateDocument(doctype, name, { docstatus: 1 });
         return {
           content: [{
             type: "text",
