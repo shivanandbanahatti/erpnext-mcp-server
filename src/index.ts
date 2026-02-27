@@ -23,7 +23,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
 
 class ERPNextClient {
@@ -62,14 +61,12 @@ class ERPNextClient {
     return this.authenticated;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getDocument(doctype: string, name: string): Promise<any> {
     try {
       const response = await this.axiosInstance.get(
         `/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
       );
       return response.data.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(`Failed to get ${doctype} ${name}: ${error?.message || "Unknown error"}`);
     }
@@ -80,7 +77,6 @@ class ERPNextClient {
     filters?: AnyRecord,
     fields?: string[],
     limit?: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any[]> {
     try {
       const params: AnyRecord = {};
@@ -102,13 +98,11 @@ class ERPNextClient {
         { params },
       );
       return response.data.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(`Failed to get ${doctype} list: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async createDocument(doctype: string, doc: AnyRecord): Promise<any> {
     try {
       const response = await this.axiosInstance.post(
@@ -116,13 +110,11 @@ class ERPNextClient {
         { data: doc },
       );
       return response.data.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(`Failed to create ${doctype}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async updateDocument(doctype: string, name: string, doc: AnyRecord): Promise<any> {
     try {
       const response = await this.axiosInstance.put(
@@ -130,13 +122,11 @@ class ERPNextClient {
         { data: doc },
       );
       return response.data.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(`Failed to update ${doctype} ${name}: ${error?.message || "Unknown error"}`);
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async runReport(reportName: string, filters?: AnyRecord): Promise<any> {
     try {
       const response = await this.axiosInstance.get(`/api/method/frappe.desk.query_report.run`, {
@@ -146,7 +136,6 @@ class ERPNextClient {
         },
       });
       return response.data.message;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(`Failed to run report ${reportName}: ${error?.message || "Unknown error"}`);
     }
@@ -156,15 +145,16 @@ class ERPNextClient {
     method: string,
     args?: AnyRecord,
     httpMethod: "GET" | "POST" = "POST",
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
+    if (!/^[\w.]+$/.test(method)) {
+      throw new Error(`Invalid method path: ${method}`);
+    }
     try {
       const response =
         httpMethod === "GET"
           ? await this.axiosInstance.get(`/api/method/${method}`, { params: args })
           : await this.axiosInstance.post(`/api/method/${method}`, args);
       return response.data.message;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(`Failed to call method ${method}: ${error?.message || "Unknown error"}`);
     }
@@ -180,12 +170,10 @@ class ERPNextClient {
       });
 
       if (response.data && response.data.data) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return response.data.data.map((item: any) => item.name);
       }
 
       return [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Failed to get DocTypes:", error?.message || "Unknown error");
 
@@ -202,12 +190,10 @@ class ERPNextClient {
         );
 
         if (altResponse.data && altResponse.data.results) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return altResponse.data.results.map((item: any) => item.value);
         }
 
         return [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (altError: any) {
         console.error("Alternative DocType fetch failed:", altError?.message || "Unknown error");
 
@@ -231,14 +217,12 @@ class ERPNextClient {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getDocTypeMeta(doctype: string): Promise<any> {
     try {
       const response = await this.axiosInstance.get(
         `/api/resource/DocType/${encodeURIComponent(doctype)}`,
       );
       return response.data.data;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new Error(
         `Failed to get DocType metadata for ${doctype}: ${error?.message || "Unknown error"}`,
@@ -297,14 +281,12 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 
   const uri = request.params.uri;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let result: any;
 
   if (uri === "erpnext://DocTypes") {
     try {
       const doctypes = await erpnext.getAllDocTypes();
       result = { doctypes };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
@@ -319,7 +301,6 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
       try {
         result = await erpnext.getDocument(doctype, name);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         throw new McpError(
           ErrorCode.InvalidRequest,
@@ -372,7 +353,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_documents",
-        description: "Get a list of documents for a specific doctype",
+        description:
+          "Get a list of documents for a specific doctype. ERPNext defaults to 20 results if no limit is specified.",
         inputSchema: {
           type: "object",
           properties: {
@@ -578,7 +560,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(documents, null, 2) }],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -614,7 +595,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             },
           ],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -651,7 +631,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             },
           ],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -678,7 +657,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -704,7 +682,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(document, null, 2) }],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -734,7 +711,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -770,7 +746,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             },
           ],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -806,7 +781,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             },
           ],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -828,7 +802,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       try {
         const meta = await erpnext.getDocTypeMeta(doctype);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fields = (meta.fields || []).map((f: any) => ({
           fieldname: f.fieldname,
           fieldtype: f.fieldtype,
@@ -839,7 +812,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(fields, null, 2) }],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
@@ -859,7 +831,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: "text", text: JSON.stringify(doctypes, null, 2) }],
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         return {
           content: [
