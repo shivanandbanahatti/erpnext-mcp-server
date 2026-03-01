@@ -15,6 +15,7 @@
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "test": "vitest run",
     "lint": "eslint src/",
     "format:check": "prettier --check src/"
   },
@@ -30,6 +31,7 @@
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.0"
   }
 }

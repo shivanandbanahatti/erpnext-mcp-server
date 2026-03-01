@@ -22,80 +22,9 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
+import { stripDocument } from "./strip.js";
 
 type AnyRecord = Record<string, any>;
-
-// System/internal fields that ERPNext adds to every document
-const SYSTEM_FIELDS = new Set(["owner", "modified_by", "creation", "modified", "idx", "doctype"]);
-
-function isSystemKey(key: string): boolean {
-  return key.startsWith("_") || SYSTEM_FIELDS.has(key);
-}
-
-function isEmptyValue(value: unknown): boolean {
-  if (value === null || value === undefined || value === "") return true;
-  if (Array.isArray(value) && value.length === 0) return true;
-  return false;
-}
-
-// Fields that are always preserved even if they'd otherwise be stripped
-const ALWAYS_KEEP = new Set(["name", "docstatus", "status"]);
-
-/**
- * Strip system metadata and null/default values from an ERPNext document.
- * Applies recursively to child tables (arrays of objects).
- */
-function stripDocument(
-  doc: AnyRecord,
-  fields?: string[],
-  childFields?: Record<string, string[]>,
-): AnyRecord {
-  // Auto-include child table names from child_fields so callers don't have to repeat them in fields
-  const childFieldKeys = childFields ? Object.keys(childFields) : [];
-  const fieldsSet = fields ? new Set([...fields, ...ALWAYS_KEEP, ...childFieldKeys]) : null;
-  const result: AnyRecord = {};
-
-  for (const [key, value] of Object.entries(doc)) {
-    // If specific fields requested, skip non-matching keys
-    if (fieldsSet && !fieldsSet.has(key)) continue;
-
-    // Strip system fields (unless in ALWAYS_KEEP)
-    if (!ALWAYS_KEEP.has(key) && isSystemKey(key)) continue;
-
-    // Handle child tables (arrays of non-null objects)
-    if (
-      Array.isArray(value) &&
-      value.length > 0 &&
-      value[0] !== null &&
-      typeof value[0] === "object"
-    ) {
-      const childFieldList = childFields?.[key];
-      result[key] = value.map((row) => stripChildRow(row, childFieldList));
-      continue;
-    }
-
-    // Strip empty/default values (unless in ALWAYS_KEEP)
-    if (!ALWAYS_KEEP.has(key) && isEmptyValue(value)) continue;
-
-    result[key] = value;
-  }
-
-  return result;
-}
-
-function stripChildRow(row: AnyRecord, fields?: string[]): AnyRecord {
-  const fieldsSet = fields ? new Set([...fields, "name"]) : null;
-  const result: AnyRecord = {};
-
-  for (const [key, value] of Object.entries(row)) {
-    if (fieldsSet && !fieldsSet.has(key)) continue;
-    if (key !== "name" && isSystemKey(key)) continue;
-    if (key !== "name" && isEmptyValue(value)) continue;
-    result[key] = value;
-  }
-
-  return result;
-}
 
 class ERPNextClient {
   private baseUrl: string;
@@ -518,7 +447,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: "get_document",
         description:
-          "Get a single document by DocType and name, including child tables. Response is automatically stripped of system metadata and null/default fields. Use 'fields' to select specific top-level fields, and 'child_fields' to select fields within child tables.",
+          "Get a single document by DocType and name, including child tables. Response is automatically stripped of system metadata and null/default fields. Use 'fields' to select specific top-level fields, and 'child_fields' to select fields within child tables. 'name', 'docstatus', and 'status' are always included.",
         inputSchema: {
           type: "object",
           properties: {
@@ -773,8 +702,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const childFields = request.params.arguments?.child_fields as
         | Record<string, string[]>
         | undefined;
-      if (childFields !== undefined && (typeof childFields !== "object" || childFields === null)) {
-        throw new McpError(ErrorCode.InvalidParams, "child_fields must be an object");
+      if (childFields !== undefined) {
+        if (typeof childFields !== "object" || childFields === null) {
+          throw new McpError(ErrorCode.InvalidParams, "child_fields must be an object");
+        }
+        for (const [key, value] of Object.entries(childFields)) {
+          if (!Array.isArray(value)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `child_fields["${key}"] must be an array of strings`,
+            );
+          }
+        }
       }
 
       try {
