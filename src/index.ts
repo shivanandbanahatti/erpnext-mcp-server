@@ -22,6 +22,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
+import { buildChildQueryArgs } from "./child-query.js";
 import { stripDocument } from "./strip.js";
 
 type AnyRecord = Record<string, any>;
@@ -102,6 +103,28 @@ class ERPNextClient {
     } catch (error: any) {
       throw new Error(`Failed to get ${doctype} list: ${error?.message || "Unknown error"}`);
     }
+  }
+
+  async getChildDocList(
+    parentDoctype: string,
+    childDoctype: string,
+    parentFields?: string[],
+    childFields?: string[],
+    childFilters?: Array<[string, string, string]>,
+    parentFilters?: AnyRecord,
+    limit?: number,
+  ): Promise<any[]> {
+    const args = buildChildQueryArgs({
+      parentDoctype,
+      childDoctype,
+      parentFields,
+      childFields,
+      childFilters,
+      parentFilters,
+      limit,
+    });
+    const result = await this.callMethod("frappe.client.get_list", args);
+    return result || [];
   }
 
   async createDocument(doctype: string, doc: AnyRecord): Promise<any> {
@@ -384,6 +407,59 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "get_child_documents",
+        description:
+          "Query child table rows by joining parent and child DocTypes. Direct child table queries return 403; this tool queries the parent DocType with child table field joins. Returns one row per matching child table row.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            parent_doctype: {
+              type: "string",
+              description: "Parent DocType (e.g., BOM, Purchase Order, Sales Order)",
+            },
+            child_doctype: {
+              type: "string",
+              description:
+                "Child table DocType (e.g., BOM Item, Purchase Order Item, Sales Order Item)",
+            },
+            parent_fields: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                'Fields from the parent document (e.g., ["name", "item", "total_cost"]). Defaults to ["name"].',
+            },
+            child_fields: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                'Fields from the child table (e.g., ["item_code", "qty", "rate"]). Automatically prefixed with child table reference.',
+            },
+            child_filters: {
+              type: "array",
+              items: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 3,
+                maxItems: 3,
+              },
+              description:
+                'Filters on child table fields as [field, operator, value] triples (e.g., [["item_code", "like", "%CM5%"]])',
+            },
+            parent_filters: {
+              type: "object",
+              additionalProperties: true,
+              description:
+                'Filters on parent document fields, same format as get_documents filters (e.g., {"is_active": 1, "docstatus": ["=", "1"]})',
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of rows to return (default: 100)",
+            },
+          },
+          required: ["parent_doctype", "child_doctype"],
+        },
+      },
+      {
         name: "create_document",
         description: "Create a new document in ERPNext",
         inputSchema: {
@@ -583,6 +659,55 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: `Failed to get ${doctype} documents: ${error?.message || "Unknown error"}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+
+    case "get_child_documents": {
+      const parentDoctype = request.params.arguments?.parent_doctype;
+      const childDoctype = request.params.arguments?.child_doctype;
+      if (
+        typeof parentDoctype !== "string" ||
+        !parentDoctype ||
+        typeof childDoctype !== "string" ||
+        !childDoctype
+      ) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          "parent_doctype and child_doctype are required",
+        );
+      }
+
+      const parentFields = request.params.arguments?.parent_fields as string[] | undefined;
+      const childFields = request.params.arguments?.child_fields as string[] | undefined;
+      const childFilters = request.params.arguments?.child_filters as
+        | Array<[string, string, string]>
+        | undefined;
+      const parentFilters = request.params.arguments?.parent_filters as AnyRecord | undefined;
+      const limit = request.params.arguments?.limit as number | undefined;
+
+      try {
+        const rows = await erpnext.getChildDocList(
+          parentDoctype,
+          childDoctype,
+          parentFields,
+          childFields,
+          childFilters,
+          parentFilters,
+          limit,
+        );
+        return {
+          content: [{ type: "text", text: JSON.stringify(rows) }],
+        };
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Failed to get ${childDoctype} from ${parentDoctype}: ${error?.message || "Unknown error"}`,
             },
           ],
           isError: true,
