@@ -22,6 +22,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
+import { stripDocument } from "./strip.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -445,7 +446,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_document",
-        description: "Get a single document by DocType and name, including all child tables",
+        description:
+          "Get a single document by DocType and name, including child tables. Response is automatically stripped of system metadata and null/default fields. Use 'fields' to select specific top-level fields, and 'child_fields' to select fields within child tables. 'name', 'docstatus', and 'status' are always included.",
         inputSchema: {
           type: "object",
           properties: {
@@ -456,6 +458,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             name: {
               type: "string",
               description: "Document name/ID (e.g., BOM-COM-HALPI2-007)",
+            },
+            fields: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                'Top-level fields to include (e.g., ["item", "total_cost", "items"]). Child tables are included by fieldname. If omitted, all fields are returned (with system fields stripped). \'name\' and \'docstatus\' are always included.',
+            },
+            child_fields: {
+              type: "object",
+              additionalProperties: {
+                type: "array",
+                items: { type: "string" },
+              },
+              description:
+                'Fields to include per child table, keyed by table fieldname (e.g., {"items": ["item_code", "qty", "rate"]}). If a child table is not listed here, all its fields are returned (stripped). \'name\' (row ID) is always included.',
             },
           },
           required: ["doctype", "name"],
@@ -677,10 +694,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new McpError(ErrorCode.InvalidParams, "Doctype and name are required");
       }
 
+      const fields = request.params.arguments?.fields;
+      if (fields !== undefined && !Array.isArray(fields)) {
+        throw new McpError(ErrorCode.InvalidParams, "fields must be an array of strings");
+      }
+
+      const childFields = request.params.arguments?.child_fields as
+        | Record<string, string[]>
+        | undefined;
+      if (childFields !== undefined) {
+        if (typeof childFields !== "object" || childFields === null) {
+          throw new McpError(ErrorCode.InvalidParams, "child_fields must be an object");
+        }
+        for (const [key, value] of Object.entries(childFields)) {
+          if (!Array.isArray(value)) {
+            throw new McpError(
+              ErrorCode.InvalidParams,
+              `child_fields["${key}"] must be an array of strings`,
+            );
+          }
+        }
+      }
+
       try {
         const document = await erpnext.getDocument(doctype, name);
+        const stripped = stripDocument(document, fields, childFields);
         return {
-          content: [{ type: "text", text: JSON.stringify(document, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(stripped) }],
         };
       } catch (error: any) {
         return {
