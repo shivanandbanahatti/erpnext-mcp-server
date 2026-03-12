@@ -24,6 +24,7 @@ import {
 import axios, { AxiosInstance } from "axios";
 import { buildChildQueryArgs } from "./child-query.js";
 import { coerceStringArray, coerceObject, coerceNumber } from "./coerce.js";
+import { extractErrorDetail } from "./errors.js";
 import { stripDocument } from "./strip.js";
 
 type AnyRecord = Record<string, any>;
@@ -71,7 +72,7 @@ class ERPNextClient {
       );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get ${doctype} ${name}: ${error?.message || "Unknown error"}`);
+      throw new Error(`Failed to get ${doctype} ${name}: ${extractErrorDetail(error)}`);
     }
   }
 
@@ -102,7 +103,7 @@ class ERPNextClient {
       );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to get ${doctype} list: ${error?.message || "Unknown error"}`);
+      throw new Error(`Failed to get ${doctype} list: ${extractErrorDetail(error)}`);
     }
   }
 
@@ -136,7 +137,7 @@ class ERPNextClient {
       );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to create ${doctype}: ${error?.message || "Unknown error"}`);
+      throw new Error(`Failed to create ${doctype}: ${extractErrorDetail(error)}`);
     }
   }
 
@@ -148,7 +149,7 @@ class ERPNextClient {
       );
       return response.data.data;
     } catch (error: any) {
-      throw new Error(`Failed to update ${doctype} ${name}: ${error?.message || "Unknown error"}`);
+      throw new Error(`Failed to update ${doctype} ${name}: ${extractErrorDetail(error)}`);
     }
   }
 
@@ -162,7 +163,7 @@ class ERPNextClient {
       });
       return response.data.message;
     } catch (error: any) {
-      throw new Error(`Failed to run report ${reportName}: ${error?.message || "Unknown error"}`);
+      throw new Error(`Failed to run report ${reportName}: ${extractErrorDetail(error)}`);
     }
   }
 
@@ -181,7 +182,7 @@ class ERPNextClient {
           : await this.axiosInstance.post(`/api/method/${method}`, args);
       return response.data.message;
     } catch (error: any) {
-      throw new Error(`Failed to call method ${method}: ${error?.message || "Unknown error"}`);
+      throw new Error(`Failed to call method ${method}: ${extractErrorDetail(error)}`);
     }
   }
 
@@ -200,7 +201,7 @@ class ERPNextClient {
 
       return [];
     } catch (error: any) {
-      console.error("Failed to get DocTypes:", error?.message || "Unknown error");
+      console.error("Failed to get DocTypes:", extractErrorDetail(error));
 
       try {
         const altResponse = await this.axiosInstance.get(
@@ -220,7 +221,7 @@ class ERPNextClient {
 
         return [];
       } catch (altError: any) {
-        console.error("Alternative DocType fetch failed:", altError?.message || "Unknown error");
+        console.error("Alternative DocType fetch failed:", extractErrorDetail(altError));
 
         return [
           "Customer",
@@ -250,7 +251,7 @@ class ERPNextClient {
       return response.data.data;
     } catch (error: any) {
       throw new Error(
-        `Failed to get DocType metadata for ${doctype}: ${error?.message || "Unknown error"}`,
+        `Failed to get DocType metadata for ${doctype}: ${extractErrorDetail(error)}`,
       );
     }
   }
@@ -315,7 +316,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to fetch DocTypes: ${error?.message || "Unknown error"}`,
+        `Failed to fetch DocTypes: ${extractErrorDetail(error)}`,
       );
     }
   } else {
@@ -329,7 +330,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       } catch (error: any) {
         throw new McpError(
           ErrorCode.InvalidRequest,
-          `Failed to fetch ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+          `Failed to fetch ${doctype} ${name}: ${extractErrorDetail(error)}`,
         );
       }
     }
@@ -663,7 +664,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to get ${doctype} documents: ${error?.message || "Unknown error"}`,
+              text: `Failed to get ${doctype} documents: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -710,7 +711,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to get ${childDoctype} from ${parentDoctype}: ${error?.message || "Unknown error"}`,
+              text: `Failed to get ${childDoctype} from ${parentDoctype}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -745,7 +746,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to create ${doctype}: ${error?.message || "Unknown error"}`,
+              text: `Failed to create ${doctype}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -781,7 +782,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to update ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+              text: `Failed to update ${doctype} ${name}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -811,7 +812,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to run report ${reportName}: ${error?.message || "Unknown error"}`,
+              text: `Failed to run report ${reportName}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -859,7 +860,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to get ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+              text: `Failed to get ${doctype} ${name}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -892,7 +893,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to call method ${method}: ${error?.message || "Unknown error"}`,
+              text: `Failed to call method ${method}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -927,7 +928,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to submit ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+              text: `Failed to submit ${doctype} ${name}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -962,7 +963,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to cancel ${doctype} ${name}: ${error?.message || "Unknown error"}`,
+              text: `Failed to cancel ${doctype} ${name}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -993,7 +994,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to get fields for ${doctype}: ${error?.message || "Unknown error"}`,
+              text: `Failed to get fields for ${doctype}: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
@@ -1012,7 +1013,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: "text",
-              text: `Failed to get DocTypes: ${error?.message || "Unknown error"}`,
+              text: `Failed to get DocTypes: ${extractErrorDetail(error)}`,
             },
           ],
           isError: true,
