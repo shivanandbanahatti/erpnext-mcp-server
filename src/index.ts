@@ -23,6 +23,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
 import { buildChildQueryArgs } from "./child-query.js";
+import { coerceStringArray, coerceObject, coerceNumber } from "./coerce.js";
 import { stripDocument } from "./strip.js";
 
 type AnyRecord = Record<string, any>;
@@ -108,11 +109,11 @@ class ERPNextClient {
   async getChildDocList(
     parentDoctype: string,
     childDoctype: string,
-    parentFields?: string[],
-    childFields?: string[],
-    childFilters?: Array<[string, string, string]>,
-    parentFilters?: AnyRecord,
-    limit?: number,
+    parentFields?: unknown,
+    childFields?: unknown,
+    childFilters?: unknown,
+    parentFilters?: unknown,
+    limit?: unknown,
   ): Promise<any[]> {
     const args = buildChildQueryArgs({
       parentDoctype,
@@ -644,9 +645,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new McpError(ErrorCode.InvalidParams, "Doctype is required");
       }
 
-      const fields = request.params.arguments?.fields as string[] | undefined;
-      const filters = request.params.arguments?.filters as AnyRecord | undefined;
-      const limit = request.params.arguments?.limit as number | undefined;
+      const fields = coerceStringArray(request.params.arguments?.fields);
+      const rawFilters = request.params.arguments?.filters;
+      const filters = coerceObject(rawFilters);
+      if (rawFilters != null && filters === undefined) {
+        throw new McpError(ErrorCode.InvalidParams, "filters must be a JSON object");
+      }
+      const limit = coerceNumber(request.params.arguments?.limit);
 
       try {
         const documents = await erpnext.getDocList(doctype, filters, fields, limit);
@@ -681,13 +686,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         );
       }
 
-      const parentFields = request.params.arguments?.parent_fields as string[] | undefined;
-      const childFields = request.params.arguments?.child_fields as string[] | undefined;
-      const childFilters = request.params.arguments?.child_filters as
-        | Array<[string, string, string]>
-        | undefined;
-      const parentFilters = request.params.arguments?.parent_filters as AnyRecord | undefined;
-      const limit = request.params.arguments?.limit as number | undefined;
+      const parentFields = request.params.arguments?.parent_fields;
+      const childFields = request.params.arguments?.child_fields;
+      const childFilters = request.params.arguments?.child_filters;
+      const parentFilters = request.params.arguments?.parent_filters;
+      const limit = request.params.arguments?.limit;
 
       try {
         const rows = await erpnext.getChildDocList(
@@ -717,7 +720,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case "create_document": {
       const doctype = request.params.arguments?.doctype;
-      const data = request.params.arguments?.data as AnyRecord | undefined;
+      const data = coerceObject(request.params.arguments?.data);
       if (typeof doctype !== "string" || !doctype || !data) {
         throw new McpError(ErrorCode.InvalidParams, "Doctype and data are required");
       }
@@ -753,7 +756,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     case "update_document": {
       const doctype = request.params.arguments?.doctype;
       const name = request.params.arguments?.name;
-      const data = request.params.arguments?.data as AnyRecord | undefined;
+      const data = coerceObject(request.params.arguments?.data);
       if (typeof doctype !== "string" || !doctype || typeof name !== "string" || !name || !data) {
         throw new McpError(ErrorCode.InvalidParams, "Doctype, name, and data are required");
       }
@@ -792,7 +795,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new McpError(ErrorCode.InvalidParams, "Report name is required");
       }
 
-      const filters = request.params.arguments?.filters as AnyRecord | undefined;
+      const rawFilters = request.params.arguments?.filters;
+      const filters = coerceObject(rawFilters);
+      if (rawFilters != null && filters === undefined) {
+        throw new McpError(ErrorCode.InvalidParams, "filters must be a JSON object");
+      }
 
       try {
         const result = await erpnext.runReport(reportName, filters);
@@ -819,25 +826,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new McpError(ErrorCode.InvalidParams, "Doctype and name are required");
       }
 
-      const fields = request.params.arguments?.fields;
-      if (fields !== undefined && !Array.isArray(fields)) {
-        throw new McpError(ErrorCode.InvalidParams, "fields must be an array of strings");
-      }
+      const fields = coerceStringArray(request.params.arguments?.fields);
 
-      const childFields = request.params.arguments?.child_fields as
-        | Record<string, string[]>
-        | undefined;
-      if (childFields !== undefined) {
-        if (typeof childFields !== "object" || childFields === null) {
+      const rawChildFields = request.params.arguments?.child_fields;
+      let childFields: Record<string, string[]> | undefined;
+      if (rawChildFields !== undefined) {
+        const coerced = coerceObject(rawChildFields);
+        if (!coerced) {
           throw new McpError(ErrorCode.InvalidParams, "child_fields must be an object");
         }
-        for (const [key, value] of Object.entries(childFields)) {
-          if (!Array.isArray(value)) {
+        childFields = {} as Record<string, string[]>;
+        for (const [key, value] of Object.entries(coerced)) {
+          const arr = coerceStringArray(value);
+          if (!arr) {
             throw new McpError(
               ErrorCode.InvalidParams,
               `child_fields["${key}"] must be an array of strings`,
             );
           }
+          childFields[key] = arr;
         }
       }
 
@@ -866,7 +873,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new McpError(ErrorCode.InvalidParams, "Method is required");
       }
 
-      const args = request.params.arguments?.args as AnyRecord | undefined;
+      const rawArgs = request.params.arguments?.args;
+      const args = coerceObject(rawArgs);
+      if (rawArgs != null && args === undefined) {
+        throw new McpError(ErrorCode.InvalidParams, "args must be a JSON object");
+      }
       const httpMethod = (request.params.arguments?.http_method === "GET" ? "GET" : "POST") as
         | "GET"
         | "POST";
