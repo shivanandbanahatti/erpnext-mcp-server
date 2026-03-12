@@ -42,6 +42,11 @@ describe("validateChildFilter", () => {
     expect(() => validateChildFilter(["qty", ">", "0"])).not.toThrow();
   });
 
+  it("accepts numeric filter values", () => {
+    expect(() => validateChildFilter(["qty", ">", 10])).not.toThrow();
+    expect(() => validateChildFilter(["docstatus", "=", 1])).not.toThrow();
+  });
+
   it("rejects non-array", () => {
     expect(() => validateChildFilter("item_code")).toThrow("expected [field, operator, value]");
   });
@@ -53,8 +58,11 @@ describe("validateChildFilter", () => {
     );
   });
 
-  it("rejects non-string elements", () => {
-    expect(() => validateChildFilter(["field", "=", 123])).toThrow(
+  it("rejects non-string field or operator", () => {
+    expect(() => validateChildFilter([123, "=", "val"])).toThrow(
+      "expected [field, operator, value]",
+    );
+    expect(() => validateChildFilter(["field", 42, "val"])).toThrow(
       "expected [field, operator, value]",
     );
   });
@@ -163,5 +171,61 @@ describe("buildChildQueryArgs", () => {
         childFilters: [["field", "="] as unknown as [string, string, string]],
       }),
     ).toThrow("expected [field, operator, value]");
+  });
+
+  it("coerces JSON string parentFields", () => {
+    const args = buildChildQueryArgs({
+      parentDoctype: "BOM",
+      childDoctype: "BOM Item",
+      parentFields: '["name", "total_cost"]',
+    });
+    expect(args.fields).toContain("name");
+    expect(args.fields).toContain("total_cost");
+  });
+
+  it("coerces JSON string childFields", () => {
+    const args = buildChildQueryArgs({
+      parentDoctype: "BOM",
+      childDoctype: "BOM Item",
+      childFields: '["item_code", "qty"]',
+    });
+    expect(args.fields).toContain("`tabBOM Item`.item_code");
+    expect(args.fields).toContain("`tabBOM Item`.qty");
+  });
+
+  it("coerces JSON string childFilters", () => {
+    const args = buildChildQueryArgs({
+      parentDoctype: "BOM",
+      childDoctype: "BOM Item",
+      childFilters: '[["item_code", "like", "%CM5%"]]',
+    });
+    expect(args.filters).toEqual([["BOM Item", "item_code", "like", "%CM5%"]]);
+  });
+
+  it("coerces JSON string parentFilters", () => {
+    const args = buildChildQueryArgs({
+      parentDoctype: "BOM",
+      childDoctype: "BOM Item",
+      parentFilters: '{"is_active": 1}',
+    });
+    expect(args.filters).toEqual([["BOM", "is_active", "=", 1]]);
+  });
+
+  it("coerces string limit", () => {
+    const args = buildChildQueryArgs({
+      parentDoctype: "BOM",
+      childDoctype: "BOM Item",
+      limit: "50",
+    });
+    expect(args.limit_page_length).toBe(50);
+  });
+
+  it("defaults parentFields to ['name'] when empty array", () => {
+    const args = buildChildQueryArgs({
+      parentDoctype: "BOM",
+      childDoctype: "BOM Item",
+      parentFields: [],
+    });
+    expect(args.fields).toEqual(["name"]);
   });
 });
