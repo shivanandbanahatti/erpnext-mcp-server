@@ -31,5 +31,18 @@ export function extractErrorDetail(error: any): string {
     if (data.exc_type) return String(data.exc_type);
     if (typeof data === "string" && data.length < 500) return data;
   }
-  return error?.message || "Unknown error";
+  const msg = error?.message || "Unknown error";
+  if (
+    error?.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+    error?.code === "CERT_HAS_EXPIRED" ||
+    error?.code === "SELF_SIGNED_CERT_IN_CHAIN" ||
+    /certificate|cert|SSL|TLS/i.test(msg)
+  ) {
+    return (
+      `${msg}. TLS from this machine to ERPNext failed verification. ` +
+      "The site certificate may be fine (test in a browser). On Windows, check antivirus/corporate SSL inspection. " +
+      "Dev-only workaround: set ERPNEXT_INSECURE_SSL=1 in MCP env (not for production)."
+    );
+  }
+  return msg;
 }

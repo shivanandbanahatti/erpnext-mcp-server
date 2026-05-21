@@ -22,6 +22,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios, { AxiosInstance } from "axios";
+import https from "https";
 import { buildChildQueryArgs } from "./child-query.js";
 import { coerceStringArray, coerceObject, coerceNumber } from "./coerce.js";
 import { extractErrorDetail } from "./errors.js";
@@ -29,31 +30,71 @@ import { stripDocument } from "./strip.js";
 
 type AnyRecord = Record<string, any>;
 
+/** Trim Windows .env / JSON cruft (quotes, CR, spaces) and validate site URL. */
+function normalizeSiteUrl(raw: string | undefined): string {
+  if (!raw?.trim()) {
+    throw new Error(
+      "ERPNEXT_URL environment variable is required (e.g. https://shivanandbanahatti.com)",
+    );
+  }
+
+  let url = raw.trim().replace(/\r/g, "").replace(/^["']|["']$/g, "");
+
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (!parsed.hostname) {
+      throw new Error("missing hostname");
+    }
+    // Drop path/query so axios baseURL is only origin
+    return `${parsed.protocol}//${parsed.host}`.replace(/\/$/, "");
+  } catch {
+    throw new Error(
+      `ERPNEXT_URL is invalid: "${raw}". Use a full URL like https://shivanandbanahatti.com with no extra quotes or spaces.`,
+    );
+  }
+}
+
+function normalizeEnvValue(raw: string | undefined): string | undefined {
+  if (raw == null) {
+    return undefined;
+  }
+  const v = raw.trim().replace(/\r/g, "").replace(/^["']|["']$/g, "");
+  return v || undefined;
+}
+
 class ERPNextClient {
   private baseUrl: string;
   private axiosInstance: AxiosInstance;
   private authenticated: boolean = false;
 
   constructor() {
-    this.baseUrl = process.env.ERPNEXT_URL || "";
+    this.baseUrl = normalizeSiteUrl(process.env.ERPNEXT_URL);
 
-    if (!this.baseUrl) {
-      throw new Error("ERPNEXT_URL environment variable is required");
+    const insecureTls =
+      process.env.ERPNEXT_INSECURE_SSL === "1" ||
+      process.env.ERPNEXT_TLS_REJECT_UNAUTHORIZED === "0";
+    if (insecureTls) {
+      console.error(
+        "WARNING: ERPNext MCP TLS verification is disabled (ERPNEXT_INSECURE_SSL=1). Use only for dev or behind SSL-inspecting proxies.",
+      );
     }
-
-    this.baseUrl = this.baseUrl.replace(/\/$/, "");
 
     this.axiosInstance = axios.create({
       baseURL: this.baseUrl,
       withCredentials: true,
+      httpsAgent: new https.Agent({ rejectUnauthorized: !insecureTls }),
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
     });
 
-    const apiKey = process.env.ERPNEXT_API_KEY;
-    const apiSecret = process.env.ERPNEXT_API_SECRET;
+    const apiKey = normalizeEnvValue(process.env.ERPNEXT_API_KEY);
+    const apiSecret = normalizeEnvValue(process.env.ERPNEXT_API_SECRET);
 
     if (apiKey && apiSecret) {
       this.axiosInstance.defaults.headers.common["Authorization"] = `token ${apiKey}:${apiSecret}`;
@@ -186,20 +227,55 @@ class ERPNextClient {
     }
   }
 
-  async getAllDocTypes(): Promise<string[]> {
-    try {
-      const response = await this.axiosInstance.get("/api/resource/DocType", {
-        params: {
-          fields: JSON.stringify(["name"]),
-          limit_page_length: 500,
-        },
-      });
+  async getAllDocTypes(options?: {
+    search?: string;
+    module?: string;
+    custom_only?: boolean;
+  }): Promise<string[]> {
+    const pageSize = 500;
+    const filters: any[] = [];
 
-      if (response.data && response.data.data) {
-        return response.data.data.map((item: any) => item.name);
+    if (options?.search) {
+      filters.push(["name", "like", `%${options.search}%`]);
+    }
+    if (options?.module) {
+      filters.push(["module", "=", options.module]);
+    }
+    if (options?.custom_only) {
+      filters.push(["custom", "=", 1]);
+    }
+
+    const fetchPage = async (start: number): Promise<string[]> => {
+      const params: AnyRecord = {
+        fields: JSON.stringify(["name"]),
+        limit_page_length: pageSize,
+        limit_start: start,
+        order_by: "name asc",
+      };
+      if (filters.length) {
+        params.filters = JSON.stringify(filters);
       }
 
-      return [];
+      const response = await this.axiosInstance.get("/api/resource/DocType", { params });
+      const rows = response.data?.data;
+      if (!Array.isArray(rows)) {
+        return [];
+      }
+      return rows.map((item: any) => item.name as string);
+    };
+
+    try {
+      const names: string[] = [];
+      let start = 0;
+      while (true) {
+        const page = await fetchPage(start);
+        names.push(...page);
+        if (page.length < pageSize) {
+          break;
+        }
+        start += pageSize;
+      }
+      return names;
     } catch (error: any) {
       console.error("Failed to get DocTypes:", extractErrorDetail(error));
 
@@ -209,36 +285,22 @@ class ERPNextClient {
           {
             params: {
               doctype: "DocType",
-              txt: "",
+              txt: options?.search || "",
               limit: 500,
             },
           },
         );
 
-        if (altResponse.data && altResponse.data.results) {
-          return altResponse.data.results.map((item: any) => item.value);
+        const rows = altResponse.data?.message ?? altResponse.data?.results;
+        if (Array.isArray(rows)) {
+          return rows.map((item: any) => item.value as string);
         }
 
-        return [];
+        throw new Error("search_link returned no DocType rows");
       } catch (altError: any) {
-        console.error("Alternative DocType fetch failed:", extractErrorDetail(altError));
-
-        return [
-          "Customer",
-          "Supplier",
-          "Item",
-          "Sales Order",
-          "Purchase Order",
-          "Sales Invoice",
-          "Purchase Invoice",
-          "Employee",
-          "Lead",
-          "Opportunity",
-          "Quotation",
-          "Payment Entry",
-          "Journal Entry",
-          "Stock Entry",
-        ];
+        throw new Error(
+          `Could not list DocTypes from ERPNext: ${extractErrorDetail(error)}; fallback: ${extractErrorDetail(altError)}`,
+        );
       }
     }
   }
@@ -311,8 +373,8 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
   if (uri === "erpnext://DocTypes") {
     try {
-      const doctypes = await erpnext.getAllDocTypes();
-      result = { doctypes };
+      const doctypes = await erpnext.getAllDocTypes({});
+      result = { count: doctypes.length, doctypes };
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,
@@ -356,10 +418,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "get_doctypes",
-        description: "Get a list of all available DocTypes",
+        description:
+          "List DocTypes from the live ERPNext instance (paginated). Use search to filter by name (e.g. 'Workshop'). Returns all pages, not a fixed subset.",
         inputSchema: {
           type: "object",
-          properties: {},
+          properties: {
+            search: {
+              type: "string",
+              description:
+                "Optional filter: DocType name contains this text (e.g. 'Workshop' → Workshop Board)",
+            },
+            module: {
+              type: "string",
+              description: "Optional filter: DocType module equals this value (e.g. 'Workshop Board')",
+            },
+            custom_only: {
+              type: "boolean",
+              description: "If true, only custom DocTypes (custom = 1)",
+            },
+          },
         },
       },
       {
@@ -1004,9 +1081,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     case "get_doctypes": {
       try {
-        const doctypes = await erpnext.getAllDocTypes();
+        const search =
+          typeof request.params.arguments?.search === "string"
+            ? request.params.arguments.search
+            : undefined;
+        const module =
+          typeof request.params.arguments?.module === "string"
+            ? request.params.arguments.module
+            : undefined;
+        const custom_only = request.params.arguments?.custom_only === true;
+
+        const doctypes = await erpnext.getAllDocTypes({ search, module, custom_only });
         return {
-          content: [{ type: "text", text: JSON.stringify(doctypes, null, 2) }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { count: doctypes.length, search, module, custom_only, doctypes },
+                null,
+                2,
+              ),
+            },
+          ],
         };
       } catch (error: any) {
         return {

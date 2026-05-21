@@ -1,8 +1,17 @@
 {
-  "name": "erpnext-server",
-  "version": "0.1.0",
-  "description": "A Model Context Protocol server",
-  "private": true,
+  "name": "erpnext-mcp-server",
+  "version": "0.2.0",
+  "description": "MCP server for ERPNext/Frappe — multi-site, paginated DocTypes, hardened URL/TLS",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shivanandbanahatti/erpnext-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shivanandbanahatti/erpnext-mcp-server/issues"
+  },
+  "homepage": "https://github.com/shivanandbanahatti/erpnext-mcp-server#readme",
   "type": "module",
   "bin": {
     "erpnext-server": "./build/index.js"

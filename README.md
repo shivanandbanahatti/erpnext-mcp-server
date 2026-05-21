@@ -1,8 +1,46 @@
 # ERPNext MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) server that connects MCP-compatible AI tools to ERPNext. It gives your AI assistant full read/write access to your ERPNext instance — inventory, manufacturing, sales, purchasing, and reporting — through natural language.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server that connects MCP-compatible AI tools to **any** ERPNext/Frappe site via API keys.
 
-Originally forked from [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server). This fork adds API key authentication, minimal response optimization, and additional tools for document lifecycle management and server-side method calls.
+**This repository** is a maintained fork of [hatlabs/erpnext-mcp-server](https://github.com/hatlabs/erpnext-mcp-server) with fixes for large sites (800+ DocTypes), URL/TLS handling on Windows, and multi-instance deployment. See [CHANGELOG.md](CHANGELOG.md).
+
+Upstream chain: [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server) → hatlabs → **this repo**.
+
+## Install (any machine)
+
+```bash
+git clone https://github.com/shivanandbanahatti/erpnext-mcp-server.git
+cd erpnext-mcp-server
+npm install
+npm run build
+```
+
+Copy `env.example` to `.env` and set your site URL and API keys (generate in Desk: **User → API Access**).
+
+```bash
+./scripts/start.sh .env
+```
+
+Or point Claude/Cursor MCP at `node /path/to/erpnext-mcp-server/build/index.js` with the same variables in `env` (see below).
+
+### Multiple ERPNext instances
+
+Use one MCP entry per site (different `ERPNEXT_URL` + keys), or separate `.env` files and `scripts/start.sh .env.client-a`. Same `build/index.js` for all sites.
+
+## Fork improvements (0.2.0)
+
+| Area | Change |
+|------|--------|
+| `get_doctypes` | Paginates all DocTypes; optional `search` / `module` / `custom_only` |
+| DocType list | No silent 14-type fallback when API fails |
+| `ERPNEXT_URL` | Validates and normalizes URL (quotes, CR, missing `https://`) |
+| TLS | Optional `ERPNEXT_INSECURE_SSL=1` for dev / SSL-inspecting proxies |
+
+---
+
+## Upstream documentation
+
+The following sections describe MCP capabilities (from hatlabs). Behavior matches upstream unless noted in CHANGELOG.
 
 ## What You Can Do
 
@@ -53,16 +91,9 @@ Once connected, you interact with ERPNext through natural conversation with your
 - An ERPNext instance with API access enabled
 - API key and secret — generate these in ERPNext under **Settings > Users > [your user] > API Access > Generate Keys**
 
-## Installation
+## Claude / Cursor configuration
 
-Clone and build:
-
-```bash
-git clone https://github.com/hatlabs/erpnext-mcp-server.git
-cd erpnext-mcp-server
-npm install
-npm run build
-```
+See **Install** at the top of this README. Configure MCP with `ERPNEXT_URL`, `ERPNEXT_API_KEY`, and `ERPNEXT_API_SECRET` (or use `scripts/start.sh` / `scripts/start.bat` with a `.env` file).
 
 ### Claude Code
 
