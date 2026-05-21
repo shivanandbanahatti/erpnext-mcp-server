@@ -1,4 +1,8 @@
 node_modules/
 build/
 *.log
-.env*
+.env
+.env.*
+env.*.env
+!.env.example
+!env.example

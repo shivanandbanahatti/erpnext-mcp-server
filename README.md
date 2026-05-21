@@ -25,7 +25,56 @@ Or point Claude/Cursor MCP at `node /path/to/erpnext-mcp-server/build/index.js` 
 
 ### Multiple ERPNext instances
 
-Use one MCP entry per site (different `ERPNEXT_URL` + keys), or separate `.env` files and `scripts/start.sh .env.client-a`. Same `build/index.js` for all sites.
+Use one MCP entry per site (different `ERPNEXT_URL` + keys).
+
+**Where to put env files:** in the **MCP repo root** (same folder as `build/`), not inside Claude’s AppData folder.
+
+Example on Windows:
+
+```text
+C:\Users\Admin\erpnext-mcp\
+  build\index.js
+  env.example
+  env.shivanandbanahatti.com.env
+  env.client-b.env
+  scripts\start.bat
+```
+
+Example on Mac/Linux:
+
+```text
+~/erpnext-mcp/
+  build/index.js
+  env.example
+  .env.site-a
+  .env.site-b
+  scripts/start.sh
+```
+
+Copy `env.example` for each site and fill URL + API keys. **Do not commit** real env files (add `*.env` and `.env.*` to `.gitignore` if needed).
+
+**Claude Desktop** (`%APPDATA%\Claude\claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "erpnext-shivanand": {
+      "command": "C:\\Users\\Admin\\erpnext-mcp\\scripts\\start.bat",
+      "args": ["C:\\Users\\Admin\\erpnext-mcp\\env.shivanandbanahatti.com.env"]
+    },
+    "erpnext-client-b": {
+      "command": "C:\\Users\\Admin\\erpnext-mcp\\scripts\\start.bat",
+      "args": ["C:\\Users\\Admin\\erpnext-mcp\\env.client-b.env"]
+    }
+  }
+}
+```
+
+**Mac/Linux** — use `scripts/start.sh` with full path to each env file in `args`.
+
+Alternatively, put all variables inline under each server’s `"env": { ... }` in JSON (no separate files).
+
+Same `build/index.js` for every site; only URL and API keys change.
 
 ## Fork improvements (0.2.0)
 
