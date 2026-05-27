@@ -4,6 +4,16 @@ Fork maintained for production use with Frappe/ERPNext (any site via API keys).
 
 Based on [hatlabs/erpnext-mcp-server](https://github.com/hatlabs/erpnext-mcp-server) (originally [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server)).
 
+## [0.3.0] — 2026-05-27
+
+### Added
+
+- **Workshop Board MCP tools** (requires `workshop_board` app on target site):
+  - `create_workshop_board` — wraps `workshop_board.api.board.create_board`
+  - `get_workshop_board` — wraps `workshop_board.api.board.get_board`
+  - `save_workshop_board` — wraps `workshop_board.api.board.save_board`
+  - `list_workshop_boards` — lists `Workshop Board` documents via REST API
+
 ## [0.2.0] — 2026-05-21
 
 ### Fixed

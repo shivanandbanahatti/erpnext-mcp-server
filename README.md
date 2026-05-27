@@ -85,6 +85,23 @@ Same `build/index.js` for every site; only URL and API keys change.
 | `ERPNEXT_URL` | Validates and normalizes URL (quotes, CR, missing `https://`) |
 | TLS | Optional `ERPNEXT_INSECURE_SSL=1` for dev / SSL-inspecting proxies |
 
+### Workshop Board (0.3.0)
+
+Requires the [workshop_board](https://github.com/) Frappe app installed on the target site (`bench get-app` + `bench --site <site> install-app workshop_board`). The API user needs **Workshop Board User** (or higher) role.
+
+| Tool | Description |
+|------|-------------|
+| `create_workshop_board` | Create board; optional Project/Task link and initial Excalidraw scene |
+| `get_workshop_board` | Load board + scene by name or reference |
+| `save_workshop_board` | Persist Excalidraw `scene_json` (Draft → Active) |
+| `list_workshop_boards` | List boards with filters |
+
+Example prompts:
+
+- "Create a workshop board titled Sprint Planning for Project PROJ-0001"
+- "Load workshop board WB-00012 and show the scene element count"
+- "Save an updated Excalidraw scene to workshop board WB-00012"
+
 ---
 
 ## Upstream documentation
@@ -186,13 +203,14 @@ Any MCP-compatible client can use this server. It communicates over stdio and re
 
 ## Tools
 
-The server exposes 10 tools that the AI client discovers automatically through MCP:
+The server exposes 14 tools that the AI client discovers automatically through MCP:
 
 | Tool | Description |
 |------|-------------|
 | `get_doctypes` | List all available DocTypes |
 | `get_doctype_fields` | Get field definitions for a DocType |
 | `get_documents` | Query documents with filters and field selection |
+| `get_child_documents` | Query child table rows via parent join |
 | `get_document` | Get a single document by name, including all child tables |
 | `create_document` | Create a new document |
 | `update_document` | Update an existing document |
@@ -200,6 +218,10 @@ The server exposes 10 tools that the AI client discovers automatically through M
 | `cancel_document` | Cancel a submitted document (set docstatus to 2) |
 | `call_method` | Call a whitelisted server-side API method |
 | `run_report` | Run an ERPNext report |
+| `create_workshop_board` | Create Workshop Board (workshop_board app) |
+| `get_workshop_board` | Load Workshop Board + Excalidraw scene |
+| `save_workshop_board` | Update Workshop Board scene JSON |
+| `list_workshop_boards` | List Workshop Board documents |
 
 ## Development
 

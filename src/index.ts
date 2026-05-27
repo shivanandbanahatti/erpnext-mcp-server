@@ -27,6 +27,11 @@ import { buildChildQueryArgs } from "./child-query.js";
 import { coerceStringArray, coerceObject, coerceNumber } from "./coerce.js";
 import { extractErrorDetail } from "./errors.js";
 import { stripDocument } from "./strip.js";
+import {
+  handleWorkshopBoardTool,
+  WORKSHOP_BOARD_TOOLS,
+  type WorkshopBoardListClient,
+} from "./workshop-board.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -324,7 +329,7 @@ const erpnext = new ERPNextClient();
 const server = new Server(
   {
     name: "erpnext-server",
-    version: "0.1.0",
+    version: "0.3.0",
   },
   {
     capabilities: {
@@ -698,6 +703,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["doctype", "name"],
         },
       },
+      ...WORKSHOP_BOARD_TOOLS,
     ],
   };
 });
@@ -714,6 +720,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ],
       isError: true,
     };
+  }
+
+  const workshopResult = await handleWorkshopBoardTool(
+    request.params.name,
+    request.params.arguments as Record<string, unknown> | undefined,
+    erpnext as WorkshopBoardListClient,
+  );
+  if (workshopResult) {
+    return workshopResult;
   }
 
   switch (request.params.name) {
