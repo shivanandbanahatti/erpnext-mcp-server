@@ -1,6 +1,6 @@
 {
   "name": "erpnext-mcp-server",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "MCP server for ERPNext/Frappe — multi-site, Workshop Board tools, paginated DocTypes",
   "private": false,
   "license": "MIT",

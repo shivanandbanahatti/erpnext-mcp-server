@@ -102,6 +102,26 @@ Example prompts:
 - "Load workshop board WB-00012 and show the scene element count"
 - "Save an updated Excalidraw scene to workshop board WB-00012"
 
+### Athru Recruitment (0.3.1)
+
+Requires **athru_recruitment** installed on the target site (`bench --site <site> install-app athru_recruitment`). Configure **Athru Recruitment Settings** (OpenAI API key) on the site. The API user needs read/write on `Candidate Information`, `Candidate Salary`, and related HR DocTypes.
+
+| Tool | Description |
+|------|-------------|
+| `get_job_opening_dimensions` | Resolve designation/department/location/grade/experience from candidate email |
+| `extract_salary_from_slip` | AI-extract company, MCTC, ACTC from a salary slip file URL |
+| `create_candidate_salary` | Create `Candidate Salary` from a `Candidate Information` record |
+| `run_bulk_candidate_salary_extraction` | Idempotent bulk extraction for all eligible candidates |
+| `list_candidate_salaries` | List `Candidate Salary` documents with filters |
+| `get_candidate_salary` | Get one `Candidate Salary` by name |
+
+Example prompts:
+
+- "Get job opening dimensions for candidate email john@example.com"
+- "Extract salary from slip /private/files/payslip.pdf"
+- "Create candidate salary for Candidate Information John Doe"
+- "Run bulk candidate salary extraction and summarize results"
+
 ---
 
 ## Upstream documentation
@@ -203,7 +223,7 @@ Any MCP-compatible client can use this server. It communicates over stdio and re
 
 ## Tools
 
-The server exposes 14 tools that the AI client discovers automatically through MCP:
+The server exposes 20 tools that the AI client discovers automatically through MCP:
 
 | Tool | Description |
 |------|-------------|
@@ -222,6 +242,12 @@ The server exposes 14 tools that the AI client discovers automatically through M
 | `get_workshop_board` | Load Workshop Board + Excalidraw scene |
 | `save_workshop_board` | Update Workshop Board scene JSON |
 | `list_workshop_boards` | List Workshop Board documents |
+| `get_job_opening_dimensions` | Job Opening dimensions from candidate email (athru_recruitment) |
+| `extract_salary_from_slip` | AI salary slip extraction (athru_recruitment) |
+| `create_candidate_salary` | Create Candidate Salary from Candidate Information |
+| `run_bulk_candidate_salary_extraction` | Bulk Candidate Salary extraction |
+| `list_candidate_salaries` | List Candidate Salary documents |
+| `get_candidate_salary` | Get one Candidate Salary document |
 
 ## Development
 

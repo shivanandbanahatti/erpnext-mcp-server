@@ -28,6 +28,11 @@ import { coerceStringArray, coerceObject, coerceNumber } from "./coerce.js";
 import { extractErrorDetail } from "./errors.js";
 import { stripDocument } from "./strip.js";
 import {
+  handleAthruRecruitmentTool,
+  ATHRU_RECRUITMENT_TOOLS,
+  type AthruRecruitmentListClient,
+} from "./athru-recruitment.js";
+import {
   handleWorkshopBoardTool,
   WORKSHOP_BOARD_TOOLS,
   type WorkshopBoardListClient,
@@ -329,7 +334,7 @@ const erpnext = new ERPNextClient();
 const server = new Server(
   {
     name: "erpnext-server",
-    version: "0.3.0",
+    version: "0.3.1",
   },
   {
     capabilities: {
@@ -704,6 +709,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       ...WORKSHOP_BOARD_TOOLS,
+      ...ATHRU_RECRUITMENT_TOOLS,
     ],
   };
 });
@@ -729,6 +735,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   );
   if (workshopResult) {
     return workshopResult;
+  }
+
+  const athruRecruitmentResult = await handleAthruRecruitmentTool(
+    request.params.name,
+    request.params.arguments as Record<string, unknown> | undefined,
+    erpnext as AthruRecruitmentListClient,
+  );
+  if (athruRecruitmentResult) {
+    return athruRecruitmentResult;
   }
 
   switch (request.params.name) {
