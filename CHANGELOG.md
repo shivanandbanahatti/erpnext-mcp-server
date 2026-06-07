@@ -4,6 +4,20 @@ Fork maintained for production use with Frappe/ERPNext (any site via API keys).
 
 Based on [hatlabs/erpnext-mcp-server](https://github.com/hatlabs/erpnext-mcp-server) (originally [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server)).
 
+## [0.3.2] — 2026-06-07
+
+### Added
+
+- **Athru Real Estate MCP tools** (requires `athru_realestate` app on target site):
+  - `get_athru_realestate_doctypes` — list all DocTypes in module Athru Real Estate
+  - `get_athru_realestate_doctype_fields` — field metadata for app DocTypes
+  - `list_athru_realestate_documents` — list Property / Real Estate Settings
+  - `get_athru_realestate_document` — get single document with child tables
+  - `create_athru_realestate_document` — create Property or Real Estate Settings
+  - `update_athru_realestate_document` — update Property or Real Estate Settings
+  - `get_published_properties` — website API (show_online=1)
+  - `get_property_by_slug` — published property detail by slug
+
 ## [0.3.0] — 2026-05-27
 
 ### Added

@@ -33,6 +33,11 @@ import {
   type AthruRecruitmentListClient,
 } from "./athru-recruitment.js";
 import {
+  handleAthruRealestateTool,
+  ATHRU_REALESTATE_TOOLS,
+  type AthruRealestateListClient,
+} from "./athru-realestate.js";
+import {
   handleWorkshopBoardTool,
   WORKSHOP_BOARD_TOOLS,
   type WorkshopBoardListClient,
@@ -710,6 +715,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       ...WORKSHOP_BOARD_TOOLS,
       ...ATHRU_RECRUITMENT_TOOLS,
+      ...ATHRU_REALESTATE_TOOLS,
     ],
   };
 });
@@ -744,6 +750,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   );
   if (athruRecruitmentResult) {
     return athruRecruitmentResult;
+  }
+
+  const athruRealestateResult = await handleAthruRealestateTool(
+    request.params.name,
+    request.params.arguments as Record<string, unknown> | undefined,
+    erpnext as AthruRealestateListClient,
+  );
+  if (athruRealestateResult) {
+    return athruRealestateResult;
   }
 
   switch (request.params.name) {
