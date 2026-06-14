@@ -4,6 +4,36 @@ Fork maintained for production use with Frappe/ERPNext (any site via API keys).
 
 Based on [hatlabs/erpnext-mcp-server](https://github.com/hatlabs/erpnext-mcp-server) (originally [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server)).
 
+## [0.4.0] — 2026-06-12
+
+### Added
+
+- **Starmark Recruitment MCP tools** (requires `starmark_recruitment` app on target site):
+  - `get_starmark_recruitment_doctypes` — list DocTypes in module Starmark Recruitment
+  - `get_extraction_summary` — Candidate Salary counts by extraction_status
+  - `resolve_job_opening_dimensions` — email → Job Applicant → Job Opening dimensions
+  - `normalize_candidate_experience` — parse free-text experience to years
+  - `extract_candidate_salary_now` — sync OpenAI extraction for one Candidate Information
+  - `run_bulk_salary_extraction` — bulk backfill with enqueue / redo_failed options
+  - `get_bulk_extraction_status` — bulk progress summary
+  - `clean_total_experience` — normalize Candidate Information total_experience
+  - `import_starmark_salary_bands` — Excel/CSV band importer
+  - `get_market_salary_dashboard` — dashboard KPI + aggregated bands
+  - `run_market_salary_detail_report` — Market Salary Detail report
+  - `run_market_salary_band_report` — Market Salary Band Report
+  - `list_candidate_salaries` / `get_candidate_salary` — Candidate Salary CRUD read
+  - `list_starmark_salary_bands` / `get_starmark_salary_band` — internal bands
+  - `get_salary_intelligence_settings` — OpenAI model / tuning single doc
+
+### Changed
+
+- Replaced **athru_recruitment** MCP integration with **starmark_recruitment** (`starmark_recruitment.api.mcp`).
+- Legacy tool aliases: `get_job_opening_dimensions`, `create_candidate_salary`, `run_bulk_candidate_salary_extraction`.
+
+### Removed
+
+- `extract_salary_from_slip` (athru_recruitment-only; use `extract_candidate_salary_now` instead).
+
 ## [0.3.2] — 2026-06-07
 
 ### Added

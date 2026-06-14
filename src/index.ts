@@ -28,10 +28,10 @@ import { coerceStringArray, coerceObject, coerceNumber } from "./coerce.js";
 import { extractErrorDetail } from "./errors.js";
 import { stripDocument } from "./strip.js";
 import {
-  handleAthruRecruitmentTool,
-  ATHRU_RECRUITMENT_TOOLS,
-  type AthruRecruitmentListClient,
-} from "./athru-recruitment.js";
+  handleStarmarkRecruitmentTool,
+  STARMARK_RECRUITMENT_TOOLS,
+  type StarmarkRecruitmentListClient,
+} from "./starmark-recruitment.js";
 import {
   handleAthruRealestateTool,
   ATHRU_REALESTATE_TOOLS,
@@ -339,7 +339,7 @@ const erpnext = new ERPNextClient();
 const server = new Server(
   {
     name: "erpnext-server",
-    version: "0.3.1",
+    version: "0.4.0",
   },
   {
     capabilities: {
@@ -714,7 +714,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       ...WORKSHOP_BOARD_TOOLS,
-      ...ATHRU_RECRUITMENT_TOOLS,
+      ...STARMARK_RECRUITMENT_TOOLS,
       ...ATHRU_REALESTATE_TOOLS,
     ],
   };
@@ -743,13 +743,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return workshopResult;
   }
 
-  const athruRecruitmentResult = await handleAthruRecruitmentTool(
+  const starmarkRecruitmentResult = await handleStarmarkRecruitmentTool(
     request.params.name,
     request.params.arguments as Record<string, unknown> | undefined,
-    erpnext as AthruRecruitmentListClient,
+    erpnext as StarmarkRecruitmentListClient,
   );
-  if (athruRecruitmentResult) {
-    return athruRecruitmentResult;
+  if (starmarkRecruitmentResult) {
+    return starmarkRecruitmentResult;
   }
 
   const athruRealestateResult = await handleAthruRealestateTool(

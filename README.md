@@ -102,25 +102,40 @@ Example prompts:
 - "Load workshop board WB-00012 and show the scene element count"
 - "Save an updated Excalidraw scene to workshop board WB-00012"
 
-### Athru Recruitment (0.3.1)
+### Starmark Recruitment (0.4.0)
 
-Requires **athru_recruitment** installed on the target site (`bench --site <site> install-app athru_recruitment`). Configure **Athru Recruitment Settings** (OpenAI API key) on the site. The API user needs read/write on `Candidate Information`, `Candidate Salary`, and related HR DocTypes.
+Requires **starmark_recruitment** installed on the target site (`bench --site <site> install-app starmark_recruitment`). Configure **Salary Intelligence Settings** and set `OPENAI_API_KEY` in site config. The API user needs HR roles and read/write on `Candidate Information`, `Candidate Salary`, and related HR DocTypes.
 
 | Tool | Description |
 |------|-------------|
-| `get_job_opening_dimensions` | Resolve designation/department/location/grade/experience from candidate email |
-| `extract_salary_from_slip` | AI-extract company, MCTC, ACTC from a salary slip file URL |
-| `create_candidate_salary` | Create `Candidate Salary` from a `Candidate Information` record |
-| `run_bulk_candidate_salary_extraction` | Idempotent bulk extraction for all eligible candidates |
-| `list_candidate_salaries` | List `Candidate Salary` documents with filters |
-| `get_candidate_salary` | Get one `Candidate Salary` by name |
+| `get_starmark_recruitment_doctypes` | List DocTypes in the Starmark Recruitment module |
+| `get_extraction_summary` | Candidate Salary counts by extraction status |
+| `resolve_job_opening_dimensions` | Resolve Job Opening dimensions from candidate email |
+| `normalize_candidate_experience` | Parse free-text experience to numeric years |
+| `extract_candidate_salary_now` | Sync OpenAI extraction for one Candidate Information |
+| `run_bulk_salary_extraction` | Bulk extraction (background queue, redo failed/partial) |
+| `get_bulk_extraction_status` | Bulk extraction progress summary |
+| `clean_total_experience` | Normalize `total_experience` on Candidate Information |
+| `import_starmark_salary_bands` | Import internal salary bands from server Excel/CSV |
+| `get_market_salary_dashboard` | Aggregated market salary dashboard data |
+| `run_market_salary_detail_report` | Market Salary Detail report |
+| `run_market_salary_band_report` | Market vs internal band comparison report |
+| `list_candidate_salaries` | List Candidate Salary documents |
+| `get_candidate_salary` | Get one Candidate Salary by name |
+| `list_starmark_salary_bands` | List Starmark Salary Band documents |
+| `get_starmark_salary_band` | Get one Starmark Salary Band |
+| `get_salary_intelligence_settings` | Salary Intelligence Settings single doc |
+
+Legacy aliases (from athru_recruitment MCP tools) still work: `get_job_opening_dimensions`, `create_candidate_salary`, `run_bulk_candidate_salary_extraction`.
 
 Example prompts:
 
-- "Get job opening dimensions for candidate email john@example.com"
-- "Extract salary from slip /private/files/payslip.pdf"
-- "Create candidate salary for Candidate Information John Doe"
-- "Run bulk candidate salary extraction and summarize results"
+- "Get extraction summary for candidate salaries"
+- "Resolve job opening dimensions for email john@example.com"
+- "Extract salary now for Candidate Information CIF-00042"
+- "Run bulk salary extraction with redo_failed and show status"
+- "Get market salary dashboard filtered by designation Software Engineer"
+- "Import starmark salary bands from /tmp/bands.xlsx (dry run first)"
 
 ---
 
@@ -242,12 +257,22 @@ The server exposes 20 tools that the AI client discovers automatically through M
 | `get_workshop_board` | Load Workshop Board + Excalidraw scene |
 | `save_workshop_board` | Update Workshop Board scene JSON |
 | `list_workshop_boards` | List Workshop Board documents |
-| `get_job_opening_dimensions` | Job Opening dimensions from candidate email (athru_recruitment) |
-| `extract_salary_from_slip` | AI salary slip extraction (athru_recruitment) |
-| `create_candidate_salary` | Create Candidate Salary from Candidate Information |
-| `run_bulk_candidate_salary_extraction` | Bulk Candidate Salary extraction |
+| `get_starmark_recruitment_doctypes` | List Starmark Recruitment DocTypes |
+| `get_extraction_summary` | Candidate Salary extraction status counts |
+| `resolve_job_opening_dimensions` | Job Opening dimensions from candidate email (starmark_recruitment) |
+| `extract_candidate_salary_now` | Sync salary slip extraction for one Candidate Information |
+| `run_bulk_salary_extraction` | Bulk Candidate Salary extraction |
+| `get_bulk_extraction_status` | Bulk extraction progress |
+| `clean_total_experience` | Normalize Candidate Information experience fields |
+| `import_starmark_salary_bands` | Import internal salary band Excel/CSV |
+| `get_market_salary_dashboard` | Market salary dashboard API |
+| `run_market_salary_detail_report` | Market Salary Detail report |
+| `run_market_salary_band_report` | Market Salary Band Report |
 | `list_candidate_salaries` | List Candidate Salary documents |
 | `get_candidate_salary` | Get one Candidate Salary document |
+| `list_starmark_salary_bands` | List Starmark Salary Band documents |
+| `get_starmark_salary_band` | Get one Starmark Salary Band |
+| `get_salary_intelligence_settings` | Salary Intelligence Settings |
 
 ## Development
 
