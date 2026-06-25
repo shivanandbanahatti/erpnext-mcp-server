@@ -4,6 +4,22 @@ Fork maintained for production use with Frappe/ERPNext (any site via API keys).
 
 Based on [hatlabs/erpnext-mcp-server](https://github.com/hatlabs/erpnext-mcp-server) (originally [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server)).
 
+## [0.5.0] — 2026-06-25
+
+### Added
+
+- **Retail Ops MCP tools** (requires `retail_ops` app on target site):
+  - `get_retail_ops_info` — module metadata
+  - `get_retail_ops_doctypes` / `get_retail_ops_doctype_fields` — discovery
+  - `list_production_order_trackers` / `get_production_order_tracker` — tracker CRUD read
+  - `create_production_order_tracker` / `update_production_order_tracker` — tracker write
+  - `get_tracker_for_sales_order` — resolve tracker from Sales Order
+  - `get_sales_order_readiness` — payment + production + QC readiness
+  - `check_delivery_gate` — dry-run Delivery Trip submit gate
+  - `list_retail_ops_reports` / `run_retail_ops_report` — all 7 Retail Ops reports
+
+- **retail_ops Frappe API** (`retail_ops.api.mcp`) for whitelisted gate checks and discovery.
+
 ## [0.4.0] — 2026-06-12
 
 ### Added

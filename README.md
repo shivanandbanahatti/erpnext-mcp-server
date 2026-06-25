@@ -137,6 +137,33 @@ Example prompts:
 - "Get market salary dashboard filtered by designation Software Engineer"
 - "Import starmark salary bands from /tmp/bands.xlsx (dry run first)"
 
+### Retail Ops (0.5.0)
+
+Requires **retail_ops** installed on the target site (`bench --site <site> install-app retail_ops`). The API user needs **Manufacturing User**, **Stock User**, or **System Manager** roles.
+
+| Tool | Description |
+|------|-------------|
+| `get_retail_ops_info` | Module metadata — doctypes, workflow, QC template |
+| `get_retail_ops_doctypes` | List Retail Ops DocTypes + extended DocTypes with custom fields |
+| `get_retail_ops_doctype_fields` | Field definitions for Production Order Tracker, Sales Order, Delivery Trip, etc. |
+| `list_production_order_trackers` | List trackers with filters (status, business line) |
+| `get_production_order_tracker` | Get one tracker by name |
+| `create_production_order_tracker` | Create tracker linked to a Sales Order |
+| `update_production_order_tracker` | Update tracker fields / workflow status |
+| `get_tracker_for_sales_order` | Resolve tracker from Sales Order |
+| `get_sales_order_readiness` | Payment + production Ready + QC Accepted check |
+| `check_delivery_gate` | Dry-run Delivery Trip gate without submit |
+| `list_retail_ops_reports` | List all 7 Retail Ops reports and custom field map |
+| `run_retail_ops_report` | Run Production Status, Delivery Calendar, Outstanding Balances, etc. |
+
+Example prompts:
+
+- "Check delivery readiness for Sales Order SAL-ORD-2026-00001"
+- "List production trackers with status Delayed"
+- "Dry-run delivery gate for Delivery Trip MAT-DT-2026-00005"
+- "Run Production Status report filtered by business line Cabinet"
+- "Create a Production Order Tracker for Sales Order SAL-ORD-2026-00012, business line Soft"
+
 ---
 
 ## Upstream documentation

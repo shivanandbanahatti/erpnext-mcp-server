@@ -42,6 +42,11 @@ import {
   WORKSHOP_BOARD_TOOLS,
   type WorkshopBoardListClient,
 } from "./workshop-board.js";
+import {
+  handleRetailOpsTool,
+  RETAIL_OPS_TOOLS,
+  type RetailOpsListClient,
+} from "./retail-ops.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -716,6 +721,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       ...WORKSHOP_BOARD_TOOLS,
       ...STARMARK_RECRUITMENT_TOOLS,
       ...ATHRU_REALESTATE_TOOLS,
+      ...RETAIL_OPS_TOOLS,
     ],
   };
 });
@@ -759,6 +765,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   );
   if (athruRealestateResult) {
     return athruRealestateResult;
+  }
+
+  const retailOpsResult = await handleRetailOpsTool(
+    request.params.name,
+    request.params.arguments as Record<string, unknown> | undefined,
+    erpnext as RetailOpsListClient,
+  );
+  if (retailOpsResult) {
+    return retailOpsResult;
   }
 
   switch (request.params.name) {
