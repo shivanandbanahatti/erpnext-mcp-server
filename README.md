@@ -164,6 +164,27 @@ Example prompts:
 - "Run Production Status report filtered by business line Cabinet"
 - "Create a Production Order Tracker for Sales Order SAL-ORD-2026-00012, business line Soft"
 
+### Frappe CRM / FCRM (0.6.0)
+
+Requires **crm** installed on the target site (`bench --site <site> install-app crm`). The API user needs CRM read/write permissions (CRM role or System Manager).
+
+| Tool | Description |
+|------|-------------|
+| `get_fcrm_info` | Module metadata — writable DocTypes and scope |
+| `get_fcrm_doctypes` | List FCRM module DocTypes (live + static) |
+| `get_fcrm_doctype_fields` | Field schema for CRM Lead, CRM Deal, etc. |
+| `list_fcrm_documents` | List documents with filters (e.g. CRM Lead by status) |
+| `get_fcrm_document` | Get one document by name |
+| `create_fcrm_document` | Create CRM Lead, CRM Deal, CRM Organization, CRM Task, FCRM Note, CRM Call Log |
+| `update_fcrm_document` | Update writable FCRM documents |
+
+Example prompts:
+
+- "List CRM Leads with status Qualified"
+- "Get CRM Deal CRM-DEAL-2026-00003"
+- "Create a CRM Lead for Jane Doe with email jane@example.com"
+- "Update CRM Deal CRM-DEAL-2026-00001 status to Won"
+
 ---
 
 ## Upstream documentation

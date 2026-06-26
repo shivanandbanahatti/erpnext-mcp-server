@@ -4,6 +4,16 @@ Fork maintained for production use with Frappe/ERPNext (any site via API keys).
 
 Based on [hatlabs/erpnext-mcp-server](https://github.com/hatlabs/erpnext-mcp-server) (originally [rakeshgangwar/erpnext-mcp-server](https://github.com/rakeshgangwar/erpnext-mcp-server)).
 
+## [0.6.0] — 2026-06-26
+
+### Added
+
+- **Frappe CRM (FCRM) MCP tools** (requires `crm` app on target site):
+  - `get_fcrm_info` — module metadata and writable DocType list
+  - `get_fcrm_doctypes` / `get_fcrm_doctype_fields` — discovery
+  - `list_fcrm_documents` / `get_fcrm_document` — read CRM Lead, CRM Deal, CRM Organization, CRM Task, etc.
+  - `create_fcrm_document` / `update_fcrm_document` — write primary FCRM DocTypes
+
 ## [0.5.0] — 2026-06-25
 
 ### Added

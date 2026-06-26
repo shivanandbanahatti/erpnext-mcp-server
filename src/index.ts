@@ -47,6 +47,7 @@ import {
   RETAIL_OPS_TOOLS,
   type RetailOpsListClient,
 } from "./retail-ops.js";
+import { handleFcrmTool, FCRM_TOOLS, type FcrmListClient } from "./fcrm.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -722,6 +723,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       ...STARMARK_RECRUITMENT_TOOLS,
       ...ATHRU_REALESTATE_TOOLS,
       ...RETAIL_OPS_TOOLS,
+      ...FCRM_TOOLS,
     ],
   };
 });
@@ -774,6 +776,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   );
   if (retailOpsResult) {
     return retailOpsResult;
+  }
+
+  const fcrmResult = await handleFcrmTool(
+    request.params.name,
+    request.params.arguments as Record<string, unknown> | undefined,
+    erpnext as FcrmListClient,
+  );
+  if (fcrmResult) {
+    return fcrmResult;
   }
 
   switch (request.params.name) {

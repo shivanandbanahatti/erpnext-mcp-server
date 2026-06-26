@@ -1,7 +1,7 @@
 {
   "name": "erpnext-mcp-server",
-  "version": "0.5.0",
-  "description": "MCP server for ERPNext/Frappe — multi-site, Workshop Board, Starmark Recruitment, Athru Real Estate & Retail Ops tools",
+  "version": "0.6.0",
+  "description": "MCP server for ERPNext/Frappe — multi-site, FCRM, Workshop Board, Starmark Recruitment, Athru Real Estate & Retail Ops tools",
   "private": false,
   "license": "MIT",
   "repository": {
